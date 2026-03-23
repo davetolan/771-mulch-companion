@@ -68,6 +68,7 @@ export interface Config {
   blocks: {};
   collections: {
     campaigns: Campaign;
+    scouts: Scout;
     pages: Page;
     posts: Post;
     media: Media;
@@ -91,6 +92,7 @@ export interface Config {
   };
   collectionsSelect: {
     campaigns: CampaignsSelect<false> | CampaignsSelect<true>;
+    scouts: ScoutsSelect<false> | ScoutsSelect<true>;
     pages: PagesSelect<false> | PagesSelect<true>;
     posts: PostsSelect<false> | PostsSelect<true>;
     media: MediaSelect<false> | MediaSelect<true>;
@@ -190,6 +192,65 @@ export interface Campaign {
   flyerBody: string;
   updatedAt: string;
   createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "scouts".
+ */
+export interface Scout {
+  id: number;
+  firstName: string;
+  lastName: string;
+  /**
+   * Name to display on flyers and public pages
+   */
+  displayName: string;
+  email: string;
+  /**
+   * Full URL from external fundraising system (e.g., https://fundraising-system.com/scout/abc123)
+   */
+  externalFundraisingUrl: string;
+  /**
+   * Unique identifier for URLs (auto-generated from display name)
+   */
+  slug?: string | null;
+  /**
+   * Inactive scouts will not appear in flyer generation or public listings
+   */
+  active?: boolean | null;
+  /**
+   * Optional associated Payload user account
+   */
+  user?: (number | null) | User;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "users".
+ */
+export interface User {
+  id: number;
+  name?: string | null;
+  roles: ('admin' | 'scout')[];
+  updatedAt: string;
+  createdAt: string;
+  email: string;
+  resetPasswordToken?: string | null;
+  resetPasswordExpiration?: string | null;
+  salt?: string | null;
+  hash?: string | null;
+  loginAttempts?: number | null;
+  lockUntil?: string | null;
+  sessions?:
+    | {
+        id: string;
+        createdAt?: string | null;
+        expiresAt: string;
+      }[]
+    | null;
+  password?: string | null;
+  collection: 'users';
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -452,33 +513,6 @@ export interface Category {
     | null;
   updatedAt: string;
   createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "users".
- */
-export interface User {
-  id: number;
-  name?: string | null;
-  roles: ('admin' | 'scout')[];
-  updatedAt: string;
-  createdAt: string;
-  email: string;
-  resetPasswordToken?: string | null;
-  resetPasswordExpiration?: string | null;
-  salt?: string | null;
-  hash?: string | null;
-  loginAttempts?: number | null;
-  lockUntil?: string | null;
-  sessions?:
-    | {
-        id: string;
-        createdAt?: string | null;
-        expiresAt: string;
-      }[]
-    | null;
-  password?: string | null;
-  collection: 'users';
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -1017,6 +1051,10 @@ export interface PayloadLockedDocument {
         value: number | Campaign;
       } | null)
     | ({
+        relationTo: 'scouts';
+        value: number | Scout;
+      } | null)
+    | ({
         relationTo: 'pages';
         value: number | Page;
       } | null)
@@ -1111,6 +1149,22 @@ export interface CampaignsSelect<T extends boolean = true> {
   active?: T;
   flyerHeadline?: T;
   flyerBody?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "scouts_select".
+ */
+export interface ScoutsSelect<T extends boolean = true> {
+  firstName?: T;
+  lastName?: T;
+  displayName?: T;
+  email?: T;
+  externalFundraisingUrl?: T;
+  slug?: T;
+  active?: T;
+  user?: T;
   updatedAt?: T;
   createdAt?: T;
 }
