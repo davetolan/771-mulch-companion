@@ -67,6 +67,7 @@ export interface Config {
   };
   blocks: {};
   collections: {
+    campaigns: Campaign;
     pages: Page;
     posts: Post;
     media: Media;
@@ -89,6 +90,7 @@ export interface Config {
     };
   };
   collectionsSelect: {
+    campaigns: CampaignsSelect<false> | CampaignsSelect<true>;
     pages: PagesSelect<false> | PagesSelect<true>;
     posts: PostsSelect<false> | PostsSelect<true>;
     media: MediaSelect<false> | MediaSelect<true>;
@@ -150,6 +152,44 @@ export interface UserAuthOperations {
     email: string;
     password: string;
   };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "campaigns".
+ */
+export interface Campaign {
+  id: number;
+  name: string;
+  /**
+   * Fundraiser year or season (e.g., "2026 Spring", "Spring 2026")
+   */
+  season: string;
+  /**
+   * When the campaign begins
+   */
+  saleStartDate: string;
+  /**
+   * When this campaign ends and orders close
+   */
+  saleEndDate: string;
+  /**
+   * When mulch will be delivered to customers
+   */
+  deliveryDate: string;
+  /**
+   * Mark as active to make this the current campaign for flyer generation
+   */
+  active?: boolean | null;
+  /**
+   * Main headline for printed flyers
+   */
+  flyerHeadline: string;
+  /**
+   * Body text for printed flyers
+   */
+  flyerBody: string;
+  updatedAt: string;
+  createdAt: string;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -973,6 +1013,10 @@ export interface PayloadLockedDocument {
   id: number;
   document?:
     | ({
+        relationTo: 'campaigns';
+        value: number | Campaign;
+      } | null)
+    | ({
         relationTo: 'pages';
         value: number | Page;
       } | null)
@@ -1053,6 +1097,22 @@ export interface PayloadMigration {
   batch?: number | null;
   updatedAt: string;
   createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "campaigns_select".
+ */
+export interface CampaignsSelect<T extends boolean = true> {
+  name?: T;
+  season?: T;
+  saleStartDate?: T;
+  saleEndDate?: T;
+  deliveryDate?: T;
+  active?: T;
+  flyerHeadline?: T;
+  flyerBody?: T;
+  updatedAt?: T;
+  createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
