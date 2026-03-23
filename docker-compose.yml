@@ -23,9 +23,20 @@ services:
       - --storageEngine=wiredTiger
     volumes:
       - data:/data/db
-    logging:
-      driver: none
+
+  postgres:
+    image: postgres:15-alpine
+    ports:
+      - '5432:5432'
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: 771-mulch-companion
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
 
 volumes:
   data:
   node_modules:
+  postgres_data:
