@@ -1,15 +1,16 @@
 import type { CollectionConfig } from 'payload'
 
+import { adminOnly } from '../../access/scoutAccess'
 import { authenticated } from '../../access/authenticated'
 
 export const Campaigns: CollectionConfig = {
   slug: 'campaigns',
   access: {
-    admin: authenticated,
-    create: authenticated,
-    delete: authenticated,
+    admin: adminOnly,
+    create: adminOnly,
+    delete: adminOnly,
     read: authenticated,
-    update: authenticated,
+    update: adminOnly,
   },
   admin: {
     defaultColumns: ['name', 'season', 'active', 'saleEndDate', 'deliveryDate'],

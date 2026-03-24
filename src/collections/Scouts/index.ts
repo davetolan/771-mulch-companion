@@ -45,12 +45,14 @@ export const Scouts: CollectionConfig = {
       name: 'externalFundraisingUrl',
       type: 'text',
       required: true,
-      validate: (value) => {
-        if (!value) return 'External fundraising URL is required'
+      validate: (value: string | string[] | null | undefined) => {
+        const url = Array.isArray(value) ? value[0] : value
+
+        if (!url) return 'External fundraising URL is required'
 
         try {
           // Validate that it's a proper URL
-          new URL(value)
+          new URL(url)
           return true
         } catch {
           return 'Please enter a valid URL (e.g., https://example.com)'

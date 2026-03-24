@@ -106,6 +106,7 @@ export const seed = async ({
         email: 'demo-author@example.com',
         password: 'password',
       },
+      draft: true,
     }),
     payload.create({
       collection: 'media',

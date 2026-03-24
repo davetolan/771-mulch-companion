@@ -26,6 +26,7 @@ export async function seedTestUser(): Promise<void> {
   await payload.create({
     collection: 'users',
     data: testUser,
+    draft: true,
   })
 }
 
