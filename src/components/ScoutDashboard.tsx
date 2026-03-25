@@ -2,6 +2,8 @@
 
 import type { Scout, Campaign, User } from '@/payload-types'
 import { format } from 'date-fns'
+import { useEffect, useState } from 'react'
+import { generateQRCodeDataURL } from '@/utilities/generateQRCode'
 
 interface ScoutDashboardProps {
   scout: Scout
@@ -10,6 +12,23 @@ interface ScoutDashboardProps {
 }
 
 export function ScoutDashboard({ scout, campaign, user }: ScoutDashboardProps) {
+  const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string | null>(null)
+  const [qrError, setQrError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!scout?.externalFundraisingUrl) {
+      setQrError('No external fundraising URL available.')
+      return
+    }
+
+    generateQRCodeDataURL(scout.externalFundraisingUrl)
+      .then(setQrCodeDataUrl)
+      .catch((error) => {
+        console.error('QR code generation failed', error)
+        setQrError('Could not generate QR code.')
+      })
+  }, [scout.externalFundraisingUrl])
+
   const handleDownloadFlyer = async () => {
     // TODO: Implement flyer PDF generation and download
     alert('Flyer download will be implemented next')
@@ -139,6 +158,26 @@ export function ScoutDashboard({ scout, campaign, user }: ScoutDashboardProps) {
               Generate and download a printable PDF flyer with your personal QR code
               and the current campaign information.
             </p>
+
+            {qrError && (
+              <p className="text-red-600 mb-2">{qrError}</p>
+            )}
+
+            {qrCodeDataUrl ? (
+              <div className="flex flex-col items-center gap-3 mb-4">
+                <img
+                  src={qrCodeDataUrl}
+                  alt="Scout fundraising QR code"
+                  className="w-40 h-40 border rounded-lg"
+                />
+                <p className="text-sm text-gray-600 text-center">
+                  Scan this code to go directly to your fundraising page.
+                </p>
+              </div>
+            ) : (
+              <p className="text-gray-500 mb-4">Generating QR code...</p>
+            )}
+
             <button
               onClick={handleDownloadFlyer}
               className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition duration-200"
