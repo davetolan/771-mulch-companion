@@ -42,6 +42,22 @@ export const Scouts: CollectionConfig = {
       unique: true,
     },
     {
+      name: 'flyerEmail',
+      type: 'email',
+      required: false,
+      admin: {
+        description: 'Optional email shown on printed flyers (default uses scout email)',
+      },
+    },
+    {
+      name: 'flyerPhone',
+      type: 'text',
+      required: false,
+      admin: {
+        description: 'Optional phone number shown on printed flyers (default blank)',
+      },
+    },
+    {
       name: 'externalFundraisingUrl',
       type: 'text',
       required: true,
@@ -59,7 +75,8 @@ export const Scouts: CollectionConfig = {
         }
       },
       admin: {
-        description: 'Full URL from external fundraising system (e.g., https://fundraising-system.com/scout/abc123)',
+        description:
+          'Full URL from external fundraising system (e.g., https://fundraising-system.com/scout/abc123)',
       },
     },
     {

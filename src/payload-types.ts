@@ -207,6 +207,14 @@ export interface Scout {
   displayName: string;
   email: string;
   /**
+   * Optional email shown on printed flyers (default uses scout email)
+   */
+  flyerEmail?: string | null;
+  /**
+   * Optional phone number shown on printed flyers (default blank)
+   */
+  flyerPhone?: string | null;
+  /**
    * Full URL from external fundraising system (e.g., https://fundraising-system.com/scout/abc123)
    */
   externalFundraisingUrl: string;
@@ -1161,6 +1169,8 @@ export interface ScoutsSelect<T extends boolean = true> {
   lastName?: T;
   displayName?: T;
   email?: T;
+  flyerEmail?: T;
+  flyerPhone?: T;
   externalFundraisingUrl?: T;
   slug?: T;
   active?: T;
