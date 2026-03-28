@@ -4,6 +4,7 @@ import type { Scout, Campaign, User } from '@/payload-types'
 import { format } from 'date-fns'
 import { useEffect, useState } from 'react'
 import { generateQRCodeDataURL } from '@/utilities/generateQRCode'
+import MulchDoorHangerFlyer from './MulchDoorHangerFlyer'
 
 interface ScoutDashboardProps {
   scout: Scout
@@ -16,6 +17,7 @@ export function ScoutDashboard({ scout, campaign, user }: ScoutDashboardProps) {
   const [qrError, setQrError] = useState<string | null>(null)
   const [isDownloading, setIsDownloading] = useState(false)
   const [downloadError, setDownloadError] = useState<string | null>(null)
+  const [isPreviewing, setIsPreviewing] = useState(false)
 
   useEffect(() => {
     if (!scout?.externalFundraisingUrl) {
@@ -196,17 +198,44 @@ export function ScoutDashboard({ scout, campaign, user }: ScoutDashboardProps) {
               <p className="text-gray-500 mb-4">Generating QR code...</p>
             )}
 
-            <button
-              onClick={handleDownloadFlyer}
-              disabled={isDownloading || !qrCodeDataUrl}
-              className={`${
-                isDownloading || !qrCodeDataUrl
-                  ? 'bg-gray-400 cursor-not-allowed'
-                  : 'bg-blue-600 hover:bg-blue-700'
-              } text-white font-medium py-2 px-4 rounded-lg transition duration-200`}
-            >
-              {isDownloading ? 'Generating PDF...' : 'Download Flyer PDF'}
-            </button>
+            <div className="flex flex-wrap items-center gap-3">
+              <button
+                onClick={handleDownloadFlyer}
+                disabled={isDownloading || !qrCodeDataUrl}
+                className={`${
+                  isDownloading || !qrCodeDataUrl
+                    ? 'bg-gray-400 cursor-not-allowed'
+                    : 'bg-blue-600 hover:bg-blue-700'
+                } text-white font-medium py-2 px-4 rounded-lg transition duration-200`}
+              >
+                {isDownloading ? 'Generating PDF...' : 'Download Flyer PDF'}
+              </button>
+
+              <button
+                onClick={() => setIsPreviewing((state) => !state)}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2 px-4 rounded-lg transition duration-200"
+                type="button"
+              >
+                {isPreviewing ? 'Hide Preview' : 'Preview Flyer'}
+              </button>
+            </div>
+
+            {isPreviewing && (
+              <div className="mt-6 rounded-lg border border-blue-200 bg-white p-4 shadow-sm">
+                <h3 className="mb-3 text-lg font-semibold text-gray-900">Flyer Preview</h3>
+                <MulchDoorHangerFlyer
+                  scoutName={scout.displayName}
+                  fundraiserUrl={scout.externalFundraisingUrl}
+                  orderDeadline={format(new Date(campaign.saleEndDate), 'MMM dd, yyyy')}
+                  deliveryDate={format(new Date(campaign.deliveryDate), 'MMM dd, yyyy')}
+                  phone={undefined}
+                  email={scout.email}
+                  troopNumber="771"
+                  products={['Hardwood', 'Black', 'Cedar', 'Potting Soil', 'Manure']}
+                  backgroundImageUrl="/images/scout-flag.jpg"
+                />
+              </div>
+            )}
           </div>
         )}
 
