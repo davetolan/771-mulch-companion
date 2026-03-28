@@ -52,7 +52,7 @@ export default function ScoutLoginPage() {
   }
 
   return (
-    <main className="mx-auto max-w-md px-4 py-10">
+    <main className="mx-auto max-w-md px-4 py-10 text-gray-900">
       <h1 className="text-3xl font-bold">Scout Login</h1>
       <p className="mt-2 text-sm text-gray-600">Use your Scout account credentials to access your fundraiser dashboard.</p>
 
@@ -64,7 +64,7 @@ export default function ScoutLoginPage() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
-            className="mt-1 block w-full rounded border px-3 py-2"
+            className="mt-1 block w-full rounded border bg-white px-3 py-2 text-gray-900"
           />
         </label>
 
@@ -75,7 +75,7 @@ export default function ScoutLoginPage() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
-            className="mt-1 block w-full rounded border px-3 py-2"
+            className="mt-1 block w-full rounded border bg-white px-3 py-2 text-gray-900"
           />
         </label>
 
@@ -84,7 +84,7 @@ export default function ScoutLoginPage() {
         <button
           type="submit"
           disabled={loading}
-          className="rounded bg-primary px-4 py-2 text-white disabled:opacity-50"
+          className="rounded bg-slate-900 px-4 py-2 text-white transition duration-200 hover:bg-slate-700 disabled:opacity-50"
         >
           {loading ? 'Signing in…' : 'Sign in'}
         </button>

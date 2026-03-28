@@ -7,9 +7,12 @@ import { fileURLToPath } from 'url'
 import { Campaigns } from './collections/Campaigns'
 import { Categories } from './collections/Categories'
 import { Customers } from './collections/Customers'
+import { EmailTemplates } from './collections/EmailTemplates'
 import { Media } from './collections/Media'
 import { Orders } from './collections/Orders'
 import { Products } from './collections/Products'
+import { ScoutEmailCampaigns } from './collections/ScoutEmailCampaigns'
+import { ScoutEmailSendLogs } from './collections/ScoutEmailSendLogs'
 import { Pages } from './collections/Pages'
 import { Posts } from './collections/Posts'
 import { Scouts } from './collections/Scouts'
@@ -70,8 +73,11 @@ export default buildConfig({
   collections: [
     Campaigns,
     Customers,
+    EmailTemplates,
     Orders,
     Products,
+    ScoutEmailCampaigns,
+    ScoutEmailSendLogs,
     Scouts,
     Pages,
     Posts,

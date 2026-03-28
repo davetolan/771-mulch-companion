@@ -69,8 +69,11 @@ export interface Config {
   collections: {
     campaigns: Campaign;
     customers: Customer;
+    'email-templates': EmailTemplate;
     orders: Order;
     products: Product;
+    'scout-email-campaigns': ScoutEmailCampaign;
+    'scout-email-send-logs': ScoutEmailSendLog;
     scouts: Scout;
     pages: Page;
     posts: Post;
@@ -96,8 +99,11 @@ export interface Config {
   collectionsSelect: {
     campaigns: CampaignsSelect<false> | CampaignsSelect<true>;
     customers: CustomersSelect<false> | CustomersSelect<true>;
+    'email-templates': EmailTemplatesSelect<false> | EmailTemplatesSelect<true>;
     orders: OrdersSelect<false> | OrdersSelect<true>;
     products: ProductsSelect<false> | ProductsSelect<true>;
+    'scout-email-campaigns': ScoutEmailCampaignsSelect<false> | ScoutEmailCampaignsSelect<true>;
+    'scout-email-send-logs': ScoutEmailSendLogsSelect<false> | ScoutEmailSendLogsSelect<true>;
     scouts: ScoutsSelect<false> | ScoutsSelect<true>;
     pages: PagesSelect<false> | PagesSelect<true>;
     posts: PostsSelect<false> | PostsSelect<true>;
@@ -287,6 +293,32 @@ export interface User {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "email-templates".
+ */
+export interface EmailTemplate {
+  id: number;
+  name: string;
+  /**
+   * What this template is intended to be used for.
+   */
+  purpose: 'previous-campaign-outreach';
+  /**
+   * Available placeholders: {{customerName}}, {{customerFirstName}}, {{previousOrder}}, {{previousCampaignName}}, {{previousCampaignSeason}}, {{scoutName}}, {{campaignName}}, {{campaignSeason}}, {{saleEndDate}}, {{deliveryDate}}, {{fundraisingUrl}}
+   */
+  subject: string;
+  /**
+   * Use plain text. Available placeholders: {{customerName}}, {{customerFirstName}}, {{previousOrder}}, {{previousCampaignName}}, {{previousCampaignSeason}}, {{scoutName}}, {{campaignName}}, {{campaignSeason}}, {{saleEndDate}}, {{deliveryDate}}, {{fundraisingUrl}}
+   */
+  body: string;
+  /**
+   * Scouts will use the most recently updated active template for this purpose.
+   */
+  active?: boolean | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "orders".
  */
 export interface Order {
@@ -317,6 +349,41 @@ export interface Product {
    * Whether this product is currently available
    */
   active?: boolean | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "scout-email-campaigns".
+ */
+export interface ScoutEmailCampaign {
+  id: number;
+  scout: number | Scout;
+  currentCampaign: number | Campaign;
+  previousCampaign: number | Campaign;
+  subjectTemplate: string;
+  bodyTemplate: string;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "scout-email-send-logs".
+ */
+export interface ScoutEmailSendLog {
+  id: number;
+  scout: number | Scout;
+  emailCampaign?: (number | null) | ScoutEmailCampaign;
+  currentCampaign: number | Campaign;
+  previousCampaign: number | Campaign;
+  customer: number | Customer;
+  recipientEmail: string;
+  subject: string;
+  body: string;
+  status: 'sent' | 'failed';
+  resendEmailId?: string | null;
+  errorMessage?: string | null;
+  sentAt: string;
   updatedAt: string;
   createdAt: string;
 }
@@ -1123,12 +1190,24 @@ export interface PayloadLockedDocument {
         value: number | Customer;
       } | null)
     | ({
+        relationTo: 'email-templates';
+        value: number | EmailTemplate;
+      } | null)
+    | ({
         relationTo: 'orders';
         value: number | Order;
       } | null)
     | ({
         relationTo: 'products';
         value: number | Product;
+      } | null)
+    | ({
+        relationTo: 'scout-email-campaigns';
+        value: number | ScoutEmailCampaign;
+      } | null)
+    | ({
+        relationTo: 'scout-email-send-logs';
+        value: number | ScoutEmailSendLog;
       } | null)
     | ({
         relationTo: 'scouts';
@@ -1249,6 +1328,19 @@ export interface CustomersSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "email-templates_select".
+ */
+export interface EmailTemplatesSelect<T extends boolean = true> {
+  name?: T;
+  purpose?: T;
+  subject?: T;
+  body?: T;
+  active?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "orders_select".
  */
 export interface OrdersSelect<T extends boolean = true> {
@@ -1273,6 +1365,39 @@ export interface ProductsSelect<T extends boolean = true> {
   name?: T;
   description?: T;
   active?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "scout-email-campaigns_select".
+ */
+export interface ScoutEmailCampaignsSelect<T extends boolean = true> {
+  scout?: T;
+  currentCampaign?: T;
+  previousCampaign?: T;
+  subjectTemplate?: T;
+  bodyTemplate?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "scout-email-send-logs_select".
+ */
+export interface ScoutEmailSendLogsSelect<T extends boolean = true> {
+  scout?: T;
+  emailCampaign?: T;
+  currentCampaign?: T;
+  previousCampaign?: T;
+  customer?: T;
+  recipientEmail?: T;
+  subject?: T;
+  body?: T;
+  status?: T;
+  resendEmailId?: T;
+  errorMessage?: T;
+  sentAt?: T;
   updatedAt?: T;
   createdAt?: T;
 }

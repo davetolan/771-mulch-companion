@@ -3,21 +3,73 @@
 import type { Scout, Campaign, User } from '@/payload-types'
 import { format } from 'date-fns'
 import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { generateQRCodeDataURL } from '@/utilities/generateQRCode'
+import { renderEmailTemplate } from '@/utilities/renderEmailTemplate'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
 import MulchDoorHangerFlyer from './MulchDoorHangerFlyer'
 
 interface ScoutDashboardProps {
   scout: Scout
   campaign: Campaign | null
+  previousCampaign: Campaign | null
+  outreachDraft: {
+    id: number | null
+    currentCampaignId: number
+    previousCampaignId: number
+    subjectTemplate: string
+    bodyTemplate: string
+  } | null
+  previousCampaignCustomers: Array<{
+    id: number
+    email: string
+    name: string
+    previousOrder: string
+    lastSentAt: string | null
+    lastSentStatus: 'failed' | 'sent' | null
+  }>
+  recentSendHistory: Array<{
+    customerId: number
+    customerName: string
+    id: number
+    recipientEmail: string
+    sentAt: string
+    status: 'failed' | 'sent'
+    subject: string
+  }>
   user: User
 }
 
-export function ScoutDashboard({ scout, campaign, user }: ScoutDashboardProps) {
+export function ScoutDashboard({
+  scout,
+  campaign,
+  previousCampaign,
+  outreachDraft,
+  previousCampaignCustomers,
+  recentSendHistory,
+  user,
+}: ScoutDashboardProps) {
+  const router = useRouter()
   const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string | null>(null)
   const [qrError, setQrError] = useState<string | null>(null)
   const [isDownloading, setIsDownloading] = useState(false)
   const [downloadError, setDownloadError] = useState<string | null>(null)
   const [isPreviewing, setIsPreviewing] = useState(false)
+  const [subjectTemplate, setSubjectTemplate] = useState(outreachDraft?.subjectTemplate ?? '')
+  const [bodyTemplate, setBodyTemplate] = useState(outreachDraft?.bodyTemplate ?? '')
+  const [selectedCustomerIds, setSelectedCustomerIds] = useState<number[]>(
+    previousCampaignCustomers.map((customer) => customer.id),
+  )
+  const [previewCustomerId, setPreviewCustomerId] = useState<number | null>(
+    previousCampaignCustomers[0]?.id ?? null,
+  )
+  const [copyMessage, setCopyMessage] = useState<string | null>(null)
+  const [saveMessage, setSaveMessage] = useState<string | null>(null)
+  const [sendMessage, setSendMessage] = useState<string | null>(null)
+  const [isSavingDraft, setIsSavingDraft] = useState(false)
+  const [isSendingEmails, setIsSendingEmails] = useState(false)
 
   useEffect(() => {
     if (!scout?.externalFundraisingUrl) {
@@ -84,13 +136,154 @@ export function ScoutDashboard({ scout, campaign, user }: ScoutDashboardProps) {
     }
   }
 
+  const handleLogout = () => {
+    document.cookie = 'payload-token=; path=/; max-age=0; samesite=lax'
+    window.location.href = '/login'
+  }
+
+  const selectedRecipients = previousCampaignCustomers.filter((customer) =>
+    selectedCustomerIds.includes(customer.id),
+  )
+
+  const previewCustomer =
+    previousCampaignCustomers.find((customer) => customer.id === previewCustomerId) ||
+    selectedRecipients[0] ||
+    previousCampaignCustomers[0] ||
+    null
+
+  const renderedPreview =
+    campaign && previousCampaign && previewCustomer
+      ? renderEmailTemplate({
+          campaignName: campaign.name,
+          campaignSeason: campaign.season,
+          customerFirstName: previewCustomer.name.trim().split(/\s+/)[0] || previewCustomer.name,
+          customerName: previewCustomer.name,
+          deliveryDate: campaign.deliveryDate,
+          fundraisingUrl: scout.externalFundraisingUrl,
+          previousCampaignName: previousCampaign.name,
+          previousCampaignSeason: previousCampaign.season,
+          previousOrder: previewCustomer.previousOrder,
+          saleEndDate: campaign.saleEndDate,
+          scoutName: scout.displayName,
+          template: {
+            body: bodyTemplate,
+            subject: subjectTemplate,
+          },
+        })
+      : null
+
+  const toggleCustomer = (customerId: number, checked: boolean) => {
+    setSelectedCustomerIds((current) =>
+      checked ? [...new Set([...current, customerId])] : current.filter((id) => id !== customerId),
+    )
+  }
+
+  const handleSelectAllCustomers = () => {
+    setSelectedCustomerIds(previousCampaignCustomers.map((customer) => customer.id))
+  }
+
+  const handleClearSelectedCustomers = () => {
+    setSelectedCustomerIds([])
+  }
+
+  const handleSaveDraft = async () => {
+    if (!outreachDraft) return
+
+    setIsSavingDraft(true)
+    setSaveMessage(null)
+
+    try {
+      const response = await fetch('/api/scout/outreach/draft', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          bodyTemplate,
+          currentCampaignId: outreachDraft.currentCampaignId,
+          previousCampaignId: outreachDraft.previousCampaignId,
+          subjectTemplate,
+        }),
+      })
+
+      const payload = (await response.json()) as { message?: string }
+
+      if (!response.ok) {
+        throw new Error(payload.message || 'Unable to save draft')
+      }
+
+      setSaveMessage('Draft saved.')
+      router.refresh()
+    } catch (error) {
+      setSaveMessage(error instanceof Error ? error.message : 'Unable to save draft')
+    } finally {
+      setIsSavingDraft(false)
+    }
+  }
+
+  const handleSendEmails = async () => {
+    if (!outreachDraft || selectedCustomerIds.length === 0) return
+
+    setIsSendingEmails(true)
+    setSendMessage(null)
+
+    try {
+      const response = await fetch('/api/scout/outreach/send', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          bodyTemplate,
+          currentCampaignId: outreachDraft.currentCampaignId,
+          customerIds: selectedCustomerIds,
+          previousCampaignId: outreachDraft.previousCampaignId,
+          subjectTemplate,
+        }),
+      })
+
+      const payload = (await response.json()) as {
+        failedCount?: number
+        message?: string
+        sentCount?: number
+      }
+
+      if (!response.ok) {
+        throw new Error(payload.message || 'Unable to send emails')
+      }
+
+      setSendMessage(
+        `Sent ${payload.sentCount ?? 0} email${payload.sentCount === 1 ? '' : 's'}${payload.failedCount ? `, ${payload.failedCount} failed` : ''}.`,
+      )
+      router.refresh()
+    } catch (error) {
+      setSendMessage(error instanceof Error ? error.message : 'Unable to send emails')
+    } finally {
+      setIsSendingEmails(false)
+    }
+  }
+
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
+    <div className="min-h-screen bg-gray-50 py-8 text-gray-900">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="bg-white shadow rounded-lg p-6 mb-6">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Welcome, {scout.displayName}!</h1>
-          <p className="text-gray-600">Your personal fundraiser dashboard</p>
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">
+                Welcome, {scout.displayName}!
+              </h1>
+              <p className="text-gray-600">Your personal fundraiser dashboard</p>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white transition duration-200 hover:bg-gray-700"
+            >
+              Logout
+            </button>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -238,6 +431,229 @@ export function ScoutDashboard({ scout, campaign, user }: ScoutDashboardProps) {
             )}
           </div>
         )}
+
+        <div className="bg-white shadow rounded-lg p-6 mt-6">
+          <h2 className="text-xl font-semibold text-gray-900 mb-4">Email Previous Customers</h2>
+          {campaign ? (
+            <div className="space-y-4">
+              <p className="text-gray-600">
+                Edit your outreach draft, preview merge variables for a specific customer, choose
+                who should receive it, and send through Resend.
+              </p>
+
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div className="rounded-lg border border-gray-200 p-4">
+                  <p className="text-sm font-medium text-gray-700">Previous Campaign</p>
+                  <p className="mt-1 text-gray-900">
+                    {previousCampaign ? previousCampaign.name : 'No previous campaign found'}
+                  </p>
+                </div>
+                <div className="rounded-lg border border-gray-200 p-4">
+                  <p className="text-sm font-medium text-gray-700">Recipients</p>
+                  <p className="mt-1 text-gray-900">
+                    {previousCampaignCustomers.length} customer
+                    {previousCampaignCustomers.length === 1 ? '' : 's'}
+                  </p>
+                </div>
+              </div>
+
+              <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm text-blue-900">
+                <p className="font-medium">Supported merge variables</p>
+                <p className="mt-2">
+                  {'{{customerName}}'}, {'{{customerFirstName}}'}, {'{{previousOrder}}'},{' '}
+                  {'{{previousCampaignName}}'}, {'{{previousCampaignSeason}}'}, {'{{scoutName}}'},
+                  {' {{campaignName}}'}, {'{{campaignSeason}}'}, {'{{saleEndDate}}'},{' '}
+                  {'{{deliveryDate}}'}, {'{{fundraisingUrl}}'}
+                </p>
+              </div>
+
+              {!previousCampaign && (
+                <p className="text-sm text-gray-500">
+                  Add or keep an older campaign in the system to target previous customers.
+                </p>
+              )}
+
+              {previousCampaign && previousCampaignCustomers.length === 0 && (
+                <p className="text-sm text-gray-500">
+                  No customer orders were found for you in {previousCampaign.name}.
+                </p>
+              )}
+
+              {!outreachDraft && (
+                <p className="text-sm text-gray-500">
+                  No active outreach email template is available yet. Create one in the `Email
+                  Templates` collection.
+                </p>
+              )}
+
+              {outreachDraft && previousCampaignCustomers.length > 0 && (
+                <>
+                  <div className="grid grid-cols-1 gap-4">
+                    <div>
+                      <label className="mb-2 block text-sm font-medium text-gray-700">
+                        Subject Template
+                      </label>
+                      <Input
+                        value={subjectTemplate}
+                        onChange={(event) => setSubjectTemplate(event.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-2 block text-sm font-medium text-gray-700">
+                        Body Template
+                      </label>
+                      <Textarea
+                        rows={10}
+                        value={bodyTemplate}
+                        onChange={(event) => setBodyTemplate(event.target.value)}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap gap-3">
+                    <button
+                      type="button"
+                      onClick={handleSaveDraft}
+                      disabled={isSavingDraft}
+                      className="rounded-lg bg-slate-800 px-4 py-2 text-sm font-medium text-white transition duration-200 hover:bg-slate-700 disabled:opacity-50"
+                    >
+                      {isSavingDraft ? 'Saving...' : 'Save Draft'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleSendEmails}
+                      disabled={isSendingEmails || selectedCustomerIds.length === 0}
+                      className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition duration-200 hover:bg-blue-700 disabled:opacity-50"
+                    >
+                      {isSendingEmails
+                        ? 'Sending...'
+                        : `Send to ${selectedCustomerIds.length} customer${selectedCustomerIds.length === 1 ? '' : 's'}`}
+                    </button>
+                  </div>
+
+                  {saveMessage && <p className="text-sm text-gray-600">{saveMessage}</p>}
+                  {sendMessage && <p className="text-sm text-gray-600">{sendMessage}</p>}
+
+                  <div className="rounded-lg border border-gray-200 p-4">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <h3 className="text-lg font-semibold text-gray-900">Recipients</h3>
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          onClick={handleSelectAllCustomers}
+                          className="rounded-lg bg-slate-100 px-3 py-2 text-sm font-medium text-slate-900 transition duration-200 hover:bg-slate-200"
+                        >
+                          Select All
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleClearSelectedCustomers}
+                          className="rounded-lg bg-slate-100 px-3 py-2 text-sm font-medium text-slate-900 transition duration-200 hover:bg-slate-200"
+                        >
+                          Clear
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="mt-4 space-y-3">
+                      {previousCampaignCustomers.map((customer) => (
+                        <label
+                          key={customer.id}
+                          className="flex items-start gap-3 rounded-lg border border-gray-200 p-3"
+                        >
+                          <Checkbox
+                            checked={selectedCustomerIds.includes(customer.id)}
+                            onCheckedChange={(checked) =>
+                              toggleCustomer(customer.id, checked === true)
+                            }
+                          />
+                          <div className="min-w-0 flex-1">
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                              <div>
+                                <p className="font-medium text-gray-900">{customer.name}</p>
+                                <p className="text-sm text-gray-600">{customer.email}</p>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => setPreviewCustomerId(customer.id)}
+                                className="rounded-lg bg-slate-100 px-3 py-1.5 text-sm font-medium text-slate-900 transition duration-200 hover:bg-slate-200"
+                              >
+                                Preview
+                              </button>
+                            </div>
+                            <p className="mt-2 text-sm text-gray-700">
+                              Previous order: {customer.previousOrder}
+                            </p>
+                            {customer.lastSentAt && (
+                              <p className="mt-1 text-xs text-gray-500">
+                                Last send: {format(new Date(customer.lastSentAt), 'MMM dd, yyyy h:mm a')} (
+                                {customer.lastSentStatus})
+                              </p>
+                            )}
+                          </div>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+
+                  {renderedPreview && previewCustomer && (
+                    <div className="rounded-lg border border-gray-200 p-4">
+                      <h3 className="text-lg font-semibold text-gray-900">Preview</h3>
+                      <p className="mt-2 text-sm text-gray-600">
+                        Showing merged preview for {previewCustomer.name}
+                      </p>
+                      <p className="mt-4 text-sm font-medium text-gray-700">Subject</p>
+                      <p className="mt-1 text-gray-900">{renderedPreview.subject}</p>
+                      <p className="mt-4 text-sm font-medium text-gray-700">Body</p>
+                      <pre className="mt-1 whitespace-pre-wrap font-sans text-gray-900">
+                        {renderedPreview.body}
+                      </pre>
+                    </div>
+                  )}
+
+                  <div className="rounded-lg border border-gray-200 p-4">
+                    <h3 className="text-lg font-semibold text-gray-900">Send History</h3>
+                    {recentSendHistory.length > 0 ? (
+                      <div className="mt-3 space-y-3">
+                        {recentSendHistory.map((entry) => (
+                          <div
+                            key={entry.id}
+                            className="rounded-lg border border-gray-200 p-3 text-sm text-gray-700"
+                          >
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                              <p className="font-medium text-gray-900">
+                                {entry.customerName} ({entry.recipientEmail})
+                              </p>
+                              <span
+                                className={`rounded-full px-2 py-1 text-xs font-semibold ${
+                                  entry.status === 'sent'
+                                    ? 'bg-green-100 text-green-800'
+                                    : 'bg-red-100 text-red-800'
+                                }`}
+                              >
+                                {entry.status}
+                              </span>
+                            </div>
+                            <p className="mt-1">{entry.subject}</p>
+                            <p className="mt-1 text-xs text-gray-500">
+                              {format(new Date(entry.sentAt), 'MMM dd, yyyy h:mm a')}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="mt-3 text-sm text-gray-500">
+                        No outreach emails have been sent for this campaign yet.
+                      </p>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
+          ) : (
+            <p className="text-gray-500">No active campaign is available for outreach.</p>
+          )}
+        </div>
 
         {/* Campaign Details */}
         {campaign && (

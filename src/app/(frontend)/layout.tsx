@@ -6,6 +6,7 @@ import { GeistSans } from 'geist/font/sans'
 import React from 'react'
 
 import { AdminBar } from '@/components/AdminBar'
+import { RouteChrome } from '@/components/RouteChrome'
 import { Footer } from '@/Footer/Component'
 import { Header } from '@/Header/Component'
 import { Providers } from '@/providers'
@@ -28,13 +29,16 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       </head>
       <body>
         <Providers>
+          <RouteChrome />
           <AdminBar
             adminBarProps={{
               preview: isEnabled,
             }}
           />
 
-          <Header />
+          <div id="site-header">
+            <Header />
+          </div>
           {children}
           <Footer />
         </Providers>

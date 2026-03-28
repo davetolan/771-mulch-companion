@@ -9,10 +9,12 @@ import { imageHero1 } from './image-hero-1'
 import { post1 } from './post-1'
 import { post2 } from './post-2'
 import { post3 } from './post-3'
+import { emailTemplateSeeds } from './emailTemplates'
 import { productSeeds } from './products'
 
 const collections: CollectionSlug[] = [
   'categories',
+  'email-templates',
   'media',
   'pages',
   'posts',
@@ -203,6 +205,18 @@ export const seed = async ({
         collection: 'products',
         depth: 0,
         data: product,
+      }),
+    ),
+  )
+
+  payload.logger.info(`— Seeding email templates...`)
+
+  await Promise.all(
+    emailTemplateSeeds.map((template) =>
+      payload.create({
+        collection: 'email-templates',
+        depth: 0,
+        data: template,
       }),
     ),
   )
