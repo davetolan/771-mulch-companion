@@ -57,6 +57,8 @@ export function ScoutDashboard({
   const [isDownloading, setIsDownloading] = useState(false)
   const [downloadError, setDownloadError] = useState<string | null>(null)
   const [isPreviewing, setIsPreviewing] = useState(false)
+  const [flyerEmail, setFlyerEmail] = useState(scout.flyerEmail ?? '')
+  const [flyerPhone, setFlyerPhone] = useState(scout.flyerPhone ?? '')
   const [subjectTemplate, setSubjectTemplate] = useState(outreachDraft?.subjectTemplate ?? '')
   const [bodyTemplate, setBodyTemplate] = useState(outreachDraft?.bodyTemplate ?? '')
   const [selectedCustomerIds, setSelectedCustomerIds] = useState<number[]>(
@@ -70,6 +72,8 @@ export function ScoutDashboard({
   const [sendMessage, setSendMessage] = useState<string | null>(null)
   const [isSavingDraft, setIsSavingDraft] = useState(false)
   const [isSendingEmails, setIsSendingEmails] = useState(false)
+  const [isSavingFlyerContact, setIsSavingFlyerContact] = useState(false)
+  const [flyerContactMessage, setFlyerContactMessage] = useState<string | null>(null)
 
   useEffect(() => {
     if (!scout?.externalFundraisingUrl) {
@@ -107,6 +111,8 @@ export function ScoutDashboard({
           deliveryDate: format(new Date(campaign.deliveryDate), 'MMM dd, yyyy'),
           externalFundraisingUrl: scout.externalFundraisingUrl,
           troopName: 'Scout Troop Mulch Fundraiser',
+          flyerEmail: flyerEmail || scout.email,
+          flyerPhone,
           flyerHeadline: campaign.flyerHeadline,
           flyerBody: campaign.flyerBody,
         }),
@@ -139,6 +145,39 @@ export function ScoutDashboard({
   const handleLogout = () => {
     document.cookie = 'payload-token=; path=/; max-age=0; samesite=lax'
     window.location.href = '/login'
+  }
+
+  const handleSaveFlyerContact = async () => {
+    setIsSavingFlyerContact(true)
+    setFlyerContactMessage(null)
+
+    try {
+      const response = await fetch('/api/scout/profile', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          flyerEmail,
+          flyerPhone,
+        }),
+      })
+
+      const payload = (await response.json()) as { message?: string }
+
+      if (!response.ok) {
+        throw new Error(payload.message || 'Unable to save flyer contact details')
+      }
+
+      setFlyerContactMessage('Flyer contact details saved.')
+      router.refresh()
+    } catch (error) {
+      setFlyerContactMessage(
+        error instanceof Error ? error.message : 'Unable to save flyer contact details',
+      )
+    } finally {
+      setIsSavingFlyerContact(false)
+    }
   }
 
   const selectedRecipients = previousCampaignCustomers.filter((customer) =>
@@ -300,6 +339,27 @@ export function ScoutDashboard({
                 <p className="text-gray-900">{scout.email}</p>
               </div>
               <div>
+                <label className="mb-2 block text-sm font-medium text-gray-700">Flyer Email</label>
+                <Input
+                  value={flyerEmail}
+                  onChange={(event) => setFlyerEmail(event.target.value)}
+                  placeholder={scout.email}
+                  type="email"
+                />
+                <p className="mt-1 text-xs text-gray-500">
+                  Leave blank to use your main email address.
+                </p>
+              </div>
+              <div>
+                <label className="mb-2 block text-sm font-medium text-gray-700">Flyer Phone</label>
+                <Input
+                  value={flyerPhone}
+                  onChange={(event) => setFlyerPhone(event.target.value)}
+                  placeholder="Optional phone number"
+                  type="text"
+                />
+              </div>
+              <div>
                 <label className="block text-sm font-medium text-gray-700">Fundraising Link</label>
                 <a
                   href={scout.externalFundraisingUrl}
@@ -319,6 +379,19 @@ export function ScoutDashboard({
                 >
                   {scout.active ? 'Active' : 'Inactive'}
                 </span>
+              </div>
+              <div className="pt-2">
+                <button
+                  type="button"
+                  onClick={handleSaveFlyerContact}
+                  disabled={isSavingFlyerContact}
+                  className="rounded-lg bg-slate-800 px-4 py-2 text-sm font-medium text-white transition duration-200 hover:bg-slate-700 disabled:opacity-50"
+                >
+                  {isSavingFlyerContact ? 'Saving...' : 'Save Flyer Contact'}
+                </button>
+                {flyerContactMessage && (
+                  <p className="mt-2 text-sm text-gray-600">{flyerContactMessage}</p>
+                )}
               </div>
             </div>
           </div>
@@ -421,8 +494,8 @@ export function ScoutDashboard({
                   fundraiserUrl={scout.externalFundraisingUrl}
                   orderDeadline={format(new Date(campaign.saleEndDate), 'MMM dd, yyyy')}
                   deliveryDate={format(new Date(campaign.deliveryDate), 'MMM dd, yyyy')}
-                  phone={undefined}
-                  email={scout.email}
+                  phone={flyerPhone || undefined}
+                  email={flyerEmail || scout.email}
                   troopNumber="771"
                   products={['Black', 'Hardwood', 'Cedar', 'Compost', 'Soil']}
                   backgroundImageUrl="/images/scout-flag.jpg"
@@ -654,17 +727,6 @@ export function ScoutDashboard({
             <p className="text-gray-500">No active campaign is available for outreach.</p>
           )}
         </div>
-
-        {/* Campaign Details */}
-        {campaign && (
-          <div className="bg-white shadow rounded-lg p-6 mt-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">Campaign Details</h2>
-            <div className="prose prose-gray max-w-none">
-              <h3 className="text-lg font-medium text-gray-900 mb-2">{campaign.flyerHeadline}</h3>
-              <p className="text-gray-700 whitespace-pre-line">{campaign.flyerBody}</p>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   )

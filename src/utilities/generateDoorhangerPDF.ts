@@ -11,7 +11,8 @@ interface DoorhangerData {
   deliveryDate: string
   qrCodeBuffer: Buffer
   troopName?: string
-  troopContact?: string
+  flyerEmail?: string
+  flyerPhone?: string
   flyerHeadline?: string
   flyerBody?: string
 }
@@ -65,7 +66,7 @@ const TOP_QR_Y = 305
 const BOTTOM_QR_Y = -2
 const QR_SIZE = 106
 
-const DEFAULT_CONTACT = 'contact@troop771.org'
+const DEFAULT_CONTACT_EMAIL = 'contact@troop771.org'
 
 const TOP_SCOUT_NAME: TextPlacement = {
   x: SCOUT_NAME_X,
@@ -290,10 +291,15 @@ function drawTemplateFields(
   fonts: { bold: PDFFont; regular: PDFFont },
   qrImage: PDFImage,
 ) {
+  const contactLines = [
+    data.flyerPhone ? `Call/Text: ${data.flyerPhone}` : 'Call/Text:',
+    `Email: ${data.flyerEmail || DEFAULT_CONTACT_EMAIL}`,
+  ].join('\n')
+
   if (mode === 'top') {
     drawFittedText(page, data.scoutName, TOP_SCOUT_NAME, fonts.bold)
     drawFittedText(page, formatDoorhangerDate(data.saleEndDate), TOP_SALE_END, fonts.bold)
-    drawWrappedText(page, data.troopContact || DEFAULT_CONTACT, TOP_TROOP_CONTACT, fonts.regular)
+    drawWrappedText(page, contactLines, TOP_TROOP_CONTACT, fonts.regular)
     drawFittedText(page, formatDoorhangerDate(data.deliveryDate), TOP_DELIVERY, fonts.bold)
 
     page.drawImage(qrImage, {
@@ -308,7 +314,7 @@ function drawTemplateFields(
 
   drawFittedText(page, data.scoutName, BOTTOM_SCOUT_NAME, fonts.bold)
   drawFittedText(page, formatDoorhangerDate(data.saleEndDate), BOTTOM_SALE_END, fonts.bold)
-  drawWrappedText(page, data.troopContact || DEFAULT_CONTACT, BOTTOM_TROOP_CONTACT, fonts.regular)
+  drawWrappedText(page, contactLines, BOTTOM_TROOP_CONTACT, fonts.regular)
   drawFittedText(page, formatDoorhangerDate(data.deliveryDate), BOTTOM_DELIVERY, fonts.bold)
 
   page.drawImage(qrImage, {

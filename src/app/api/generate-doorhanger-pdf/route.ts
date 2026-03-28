@@ -9,7 +9,8 @@ interface GeneratePDFRequest {
   deliveryDate: string
   externalFundraisingUrl: string
   troopName?: string
-  troopContact?: string
+  flyerEmail?: string
+  flyerPhone?: string
   flyerHeadline?: string
   flyerBody?: string
 }
@@ -38,7 +39,8 @@ export async function POST(request: NextRequest) {
       deliveryDate: body.deliveryDate,
       qrCodeBuffer,
       troopName: body.troopName,
-      troopContact: body.troopContact,
+      flyerEmail: body.flyerEmail,
+      flyerPhone: body.flyerPhone,
       flyerHeadline: body.flyerHeadline,
       flyerBody: body.flyerBody,
     })
