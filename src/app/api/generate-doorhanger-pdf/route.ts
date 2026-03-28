@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { generateDoorhangerPDF } from '@/utilities/generateDoorhangerPDF'
 import { generateQRCodeDataURL } from '@/utilities/generateQRCode'
-import { format } from 'date-fns'
 
 interface GeneratePDFRequest {
   scoutName: string
