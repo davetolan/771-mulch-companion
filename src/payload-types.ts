@@ -69,6 +69,7 @@ export interface Config {
   collections: {
     campaigns: Campaign;
     customers: Customer;
+    orders: Order;
     products: Product;
     scouts: Scout;
     pages: Page;
@@ -95,6 +96,7 @@ export interface Config {
   collectionsSelect: {
     campaigns: CampaignsSelect<false> | CampaignsSelect<true>;
     customers: CustomersSelect<false> | CustomersSelect<true>;
+    orders: OrdersSelect<false> | OrdersSelect<true>;
     products: ProductsSelect<false> | ProductsSelect<true>;
     scouts: ScoutsSelect<false> | ScoutsSelect<true>;
     pages: PagesSelect<false> | PagesSelect<true>;
@@ -282,6 +284,26 @@ export interface User {
     | null;
   password?: string | null;
   collection: 'users';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "orders".
+ */
+export interface Order {
+  id: number;
+  customer: number | Customer;
+  campaign: number | Campaign;
+  items: {
+    product: number | Product;
+    count: number;
+    id?: string | null;
+  }[];
+  /**
+   * Calculated total quantity across all products in this order
+   */
+  totalProductCount?: number | null;
+  updatedAt: string;
+  createdAt: string;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -1101,6 +1123,10 @@ export interface PayloadLockedDocument {
         value: number | Customer;
       } | null)
     | ({
+        relationTo: 'orders';
+        value: number | Order;
+      } | null)
+    | ({
         relationTo: 'products';
         value: number | Product;
       } | null)
@@ -1218,6 +1244,24 @@ export interface CustomersSelect<T extends boolean = true> {
   phoneNumber?: T;
   email?: T;
   scout?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "orders_select".
+ */
+export interface OrdersSelect<T extends boolean = true> {
+  customer?: T;
+  campaign?: T;
+  items?:
+    | T
+    | {
+        product?: T;
+        count?: T;
+        id?: T;
+      };
+  totalProductCount?: T;
   updatedAt?: T;
   createdAt?: T;
 }
