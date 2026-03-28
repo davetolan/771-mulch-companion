@@ -1,4 +1,7 @@
-import { PDFDocument, rgb, StandardFonts } from 'pdf-lib'
+import { readFile } from 'node:fs/promises'
+import path from 'node:path'
+
+import { PDFDocument, type PDFFont, type PDFImage, type PDFPage, StandardFonts } from 'pdf-lib'
 
 interface DoorhangerData {
   scoutName: string
@@ -12,184 +15,89 @@ interface DoorhangerData {
   flyerBody?: string
 }
 
-const HANGER_WIDTH = 252 // 3.5" at 72 DPI
-const HANGER_HEIGHT = 612 // 8.5" at 72 DPI
+const TEMPLATE_PDF_PATH = path.join(process.cwd(), 'public', 'templates', 'doorhanger-template.pdf')
 
-function drawHanger(page: any, x: number, y: number, data: DoorhangerData, fonts: { bold: any; regular: any }, qrImage: any) {
-  // White background
-  page.drawRectangle({ x, y, width: HANGER_WIDTH, height: HANGER_HEIGHT, color: rgb(1, 1, 1) })
+const FIELD_COORDINATES = {
+  top: {
+    scoutName: { x: 50, y: 674, size: 15, maxWidth: 165 },
+    saleEndDate: { x: 42, y: 542, size: 14, maxWidth: 190 },
+    troopContact: { x: 54, y: 511, size: 8, maxWidth: 170 },
+    deliveryDate: { x: 72, y: 440, size: 16, maxWidth: 160 },
+    qrCode: { x: 77, y: 305, size: 106 },
+  },
+  bottom: {
+    scoutName: { x: 50, y: 365, size: 15, maxWidth: 165 },
+    saleEndDate: { x: 42, y: 234, size: 14, maxWidth: 190 },
+    troopContact: { x: 54, y: 202, size: 8, maxWidth: 170 },
+    deliveryDate: { x: 72, y: 132, size: 16, maxWidth: 160 },
+    qrCode: { x: 77, y: -2, size: 106 },
+  },
+} as const
 
-  // Outer border
-  page.drawRectangle({
-    x: x + 4,
-    y: y + 4,
-    width: HANGER_WIDTH - 8,
-    height: HANGER_HEIGHT - 8,
-    borderColor: rgb(0.05, 0.2, 0.65),
-    borderWidth: 2,
-  })
+type Placement = (typeof FIELD_COORDINATES)[keyof typeof FIELD_COORDINATES]
 
-  const contentLeft = x + 12
-  let cursor = y + HANGER_HEIGHT - 28
-
-  // Top flag section
-  page.drawRectangle({
-    x: contentLeft,
-    y: cursor - 44,
-    width: HANGER_WIDTH - 24,
-    height: 40,
-    color: rgb(0.054, 0.184, 0.6),
-  })
-  page.drawText('Support your local Scouts Troop', {
-    x: contentLeft + 6,
-    y: cursor - 34,
-    size: 10,
+function drawTemplateFields(
+  page: PDFPage,
+  data: DoorhangerData,
+  placement: Placement,
+  fonts: { bold: PDFFont; regular: PDFFont },
+  qrImage: PDFImage,
+) {
+  page.drawText(data.scoutName, {
+    x: placement.scoutName.x,
+    y: placement.scoutName.y,
+    size: placement.scoutName.size,
     font: fonts.bold,
-    color: rgb(1, 1, 1),
-    maxWidth: HANGER_WIDTH - 36,
+    maxWidth: placement.scoutName.maxWidth,
   })
-  cursor -= 60
 
-  // Main heading (name line)
-  const heading = `My name is ${data.scoutName}`
-  page.drawText(heading, {
-    x: contentLeft,
-    y: cursor,
-    size: 16,
+  page.drawText(data.saleEndDate, {
+    x: placement.saleEndDate.x,
+    y: placement.saleEndDate.y,
+    size: placement.saleEndDate.size,
     font: fonts.bold,
-    color: rgb(0.054, 0.184, 0.6),
-    maxWidth: HANGER_WIDTH - 24,
-    lineHeight: 18,
+    maxWidth: placement.saleEndDate.maxWidth,
   })
-  cursor -= 36
 
-  // Top body text
-  const body = data.flyerBody || 'Please support our troop by buying mulch and potting soil from our fundraiser.'
-  page.drawText(body, {
-    x: contentLeft,
-    y: cursor,
-    size: 10,
+  page.drawText(data.troopContact || 'contact@troop771.org', {
+    x: placement.troopContact.x,
+    y: placement.troopContact.y,
+    size: placement.troopContact.size,
     font: fonts.regular,
-    color: rgb(0.054, 0.184, 0.6),
-    maxWidth: HANGER_WIDTH - 24,
-    lineHeight: 12,
-  })
-  cursor -= 70
-
-  // Product text
-  page.drawText('Hardwood, Black, Cedar, Potting Soil and Manure', {
-    x: contentLeft,
-    y: cursor,
-    size: 12,
-    font: fonts.bold,
-    color: rgb(0.85, 0.13, 0.13),
-    maxWidth: HANGER_WIDTH - 24,
-  })
-  cursor -= 34
-
-  // Info box
-  page.drawRectangle({
-    x: contentLeft,
-    y: cursor - 58,
-    width: HANGER_WIDTH - 24,
-    height: 56,
-    borderColor: rgb(0.054, 0.184, 0.6),
-    borderWidth: 2,
-  })
-  page.drawText(`Order Deadline: ${data.saleEndDate}`, {
-    x: contentLeft + 8,
-    y: cursor - 20,
-    size: 11,
-    font: fonts.bold,
-    color: rgb(0.054, 0.184, 0.6),
-  })
-  page.drawText('Questions?', {
-    x: contentLeft + 8,
-    y: cursor - 34,
-    size: 10,
-    font: fonts.bold,
-    color: rgb(0.054, 0.184, 0.6),
-  })
-  page.drawText(`Email: ${data.troopContact || 'contact@troop771.org'}`, {
-    x: contentLeft + 8,
-    y: cursor - 48,
-    size: 9,
-    font: fonts.regular,
-    color: rgb(0.054, 0.184, 0.6),
+    maxWidth: placement.troopContact.maxWidth,
   })
 
-  cursor -= 80
-
-  // Delivery date block
-  page.drawRectangle({
-    x: contentLeft,
-    y: cursor - 72,
-    width: HANGER_WIDTH - 24,
-    height: 68,
-    borderColor: rgb(0.054, 0.184, 0.6),
-    borderWidth: 2,
-  })
-
-  page.drawText('Delivery:', {
-    x: contentLeft + 12,
-    y: cursor - 22,
-    size: 10,
-    font: fonts.bold,
-    color: rgb(0.054, 0.184, 0.6),
-  })
   page.drawText(data.deliveryDate, {
-    x: contentLeft + 12,
-    y: cursor - 40,
-    size: 20,
+    x: placement.deliveryDate.x,
+    y: placement.deliveryDate.y,
+    size: placement.deliveryDate.size,
     font: fonts.bold,
-    color: rgb(0.85, 0.13, 0.13),
+    maxWidth: placement.deliveryDate.maxWidth,
   })
 
-  cursor -= 90
-
-  // Callout + QR
-  page.drawRectangle({
-    x: contentLeft,
-    y: cursor - 130,
-    width: HANGER_WIDTH - 24,
-    height: 126,
-    borderColor: rgb(0.054, 0.184, 0.6),
-    borderWidth: 2,
-  })
-
-  const qrSize = 110
-  const qrX = x + (HANGER_WIDTH - qrSize) / 2
-  if (qrImage) {
-    page.drawImage(qrImage, {
-      x: qrX,
-      y: cursor - qrSize - 6,
-      width: qrSize,
-      height: qrSize,
-    })
-  }
-
-  page.drawText('Order Today!', {
-    x: contentLeft,
-    y: cursor - 12,
-    size: 12,
-    font: fonts.bold,
-    color: rgb(0.85, 0.13, 0.13),
-    maxWidth: HANGER_WIDTH - 24,
-    align: 'center' as any,
+  page.drawImage(qrImage, {
+    x: placement.qrCode.x,
+    y: placement.qrCode.y,
+    width: placement.qrCode.size,
+    height: placement.qrCode.size,
   })
 }
 
 export async function generateDoorhangerPDF(data: DoorhangerData): Promise<Buffer> {
-  const pdfDoc = await PDFDocument.create()
+  const templateBytes = await readFile(TEMPLATE_PDF_PATH)
+  const pdfDoc = await PDFDocument.load(templateBytes)
+
+  const [page] = pdfDoc.getPages()
+  if (!page) {
+    throw new Error('Doorhanger template does not include a drawable page')
+  }
+
   const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold)
   const regularFont = await pdfDoc.embedFont(StandardFonts.Helvetica)
-
-  const page = pdfDoc.addPage([612, 792]) // 8.5 x 11
   const qrImage = await pdfDoc.embedPng(data.qrCodeBuffer)
 
-  // place two door hangers (top and bottom)
-  drawHanger(page, 24, 792 - 24 - HANGER_HEIGHT, data, { bold: boldFont, regular: regularFont }, qrImage)
-  drawHanger(page, 24, 24, data, { bold: boldFont, regular: regularFont }, qrImage)
+  drawTemplateFields(page, data, FIELD_COORDINATES.top, { bold: boldFont, regular: regularFont }, qrImage)
+  drawTemplateFields(page, data, FIELD_COORDINATES.bottom, { bold: boldFont, regular: regularFont }, qrImage)
 
   const pdfBytes = await pdfDoc.save()
   return Buffer.from(pdfBytes)
