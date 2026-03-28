@@ -1,6 +1,12 @@
 import type { Payload, PayloadRequest } from 'payload'
 
-export const migrateScoutFlyerContact = async ({ payload, req }: { payload: Payload; req: PayloadRequest }) => {
+export const migrateScoutFlyerContact = async ({
+  payload,
+  req,
+}: {
+  payload: Payload
+  req: PayloadRequest
+}) => {
   const limit = 100
   let page = 1
   let totalUpdated = 0
