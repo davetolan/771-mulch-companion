@@ -68,6 +68,7 @@ export interface Config {
   blocks: {};
   collections: {
     campaigns: Campaign;
+    customers: Customer;
     scouts: Scout;
     pages: Page;
     posts: Post;
@@ -92,6 +93,7 @@ export interface Config {
   };
   collectionsSelect: {
     campaigns: CampaignsSelect<false> | CampaignsSelect<true>;
+    customers: CustomersSelect<false> | CustomersSelect<true>;
     scouts: ScoutsSelect<false> | ScoutsSelect<true>;
     pages: PagesSelect<false> | PagesSelect<true>;
     posts: PostsSelect<false> | PostsSelect<true>;
@@ -190,6 +192,25 @@ export interface Campaign {
    * Body text for printed flyers
    */
   flyerBody: string;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "customers".
+ */
+export interface Customer {
+  id: number;
+  name: string;
+  address: string;
+  city: string;
+  zip: string;
+  phoneNumber: string;
+  email: string;
+  /**
+   * The scout this customer is assigned to
+   */
+  scout: number | Scout;
   updatedAt: string;
   createdAt: string;
 }
@@ -1059,6 +1080,10 @@ export interface PayloadLockedDocument {
         value: number | Campaign;
       } | null)
     | ({
+        relationTo: 'customers';
+        value: number | Customer;
+      } | null)
+    | ({
         relationTo: 'scouts';
         value: number | Scout;
       } | null)
@@ -1157,6 +1182,21 @@ export interface CampaignsSelect<T extends boolean = true> {
   active?: T;
   flyerHeadline?: T;
   flyerBody?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "customers_select".
+ */
+export interface CustomersSelect<T extends boolean = true> {
+  name?: T;
+  address?: T;
+  city?: T;
+  zip?: T;
+  phoneNumber?: T;
+  email?: T;
+  scout?: T;
   updatedAt?: T;
   createdAt?: T;
 }
