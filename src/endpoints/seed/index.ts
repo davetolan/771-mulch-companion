@@ -9,12 +9,14 @@ import { imageHero1 } from './image-hero-1'
 import { post1 } from './post-1'
 import { post2 } from './post-2'
 import { post3 } from './post-3'
+import { productSeeds } from './products'
 
 const collections: CollectionSlug[] = [
   'categories',
   'media',
   'pages',
   'posts',
+  'products',
   'forms',
   'form-submissions',
   'search',
@@ -192,6 +194,18 @@ export const seed = async ({
       relatedPosts: [post1Doc.id, post2Doc.id],
     },
   })
+
+  payload.logger.info(`— Seeding products...`)
+
+  await Promise.all(
+    productSeeds.map((product) =>
+      payload.create({
+        collection: 'products',
+        depth: 0,
+        data: product,
+      }),
+    ),
+  )
 
   payload.logger.info(`— Seeding contact form...`)
 

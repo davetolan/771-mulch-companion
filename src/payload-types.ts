@@ -69,6 +69,7 @@ export interface Config {
   collections: {
     campaigns: Campaign;
     customers: Customer;
+    products: Product;
     scouts: Scout;
     pages: Page;
     posts: Post;
@@ -94,6 +95,7 @@ export interface Config {
   collectionsSelect: {
     campaigns: CampaignsSelect<false> | CampaignsSelect<true>;
     customers: CustomersSelect<false> | CustomersSelect<true>;
+    products: ProductsSelect<false> | ProductsSelect<true>;
     scouts: ScoutsSelect<false> | ScoutsSelect<true>;
     pages: PagesSelect<false> | PagesSelect<true>;
     posts: PostsSelect<false> | PostsSelect<true>;
@@ -280,6 +282,21 @@ export interface User {
     | null;
   password?: string | null;
   collection: 'users';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "products".
+ */
+export interface Product {
+  id: number;
+  name: string;
+  description?: string | null;
+  /**
+   * Whether this product is currently available
+   */
+  active?: boolean | null;
+  updatedAt: string;
+  createdAt: string;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -1084,6 +1101,10 @@ export interface PayloadLockedDocument {
         value: number | Customer;
       } | null)
     | ({
+        relationTo: 'products';
+        value: number | Product;
+      } | null)
+    | ({
         relationTo: 'scouts';
         value: number | Scout;
       } | null)
@@ -1197,6 +1218,17 @@ export interface CustomersSelect<T extends boolean = true> {
   phoneNumber?: T;
   email?: T;
   scout?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "products_select".
+ */
+export interface ProductsSelect<T extends boolean = true> {
+  name?: T;
+  description?: T;
+  active?: T;
   updatedAt?: T;
   createdAt?: T;
 }

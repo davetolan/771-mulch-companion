@@ -14,7 +14,7 @@ type FlyerProps = {
   backgroundImageUrl?: string
 }
 
-const defaultProducts = ['Hardwood', 'Black', 'Cedar', 'Potting Soil', 'Manure']
+const defaultProducts = ['Black', 'Hardwood', 'Cedar', 'Compost', 'Soil']
 
 export default function MulchDoorHangerFlyer({
   scoutName,

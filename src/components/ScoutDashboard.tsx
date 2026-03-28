@@ -231,7 +231,7 @@ export function ScoutDashboard({ scout, campaign, user }: ScoutDashboardProps) {
                   phone={undefined}
                   email={scout.email}
                   troopNumber="771"
-                  products={['Hardwood', 'Black', 'Cedar', 'Potting Soil', 'Manure']}
+                  products={['Black', 'Hardwood', 'Cedar', 'Compost', 'Soil']}
                   backgroundImageUrl="/images/scout-flag.jpg"
                 />
               </div>

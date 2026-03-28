@@ -8,6 +8,7 @@ import { Campaigns } from './collections/Campaigns'
 import { Categories } from './collections/Categories'
 import { Customers } from './collections/Customers'
 import { Media } from './collections/Media'
+import { Products } from './collections/Products'
 import { Pages } from './collections/Pages'
 import { Posts } from './collections/Posts'
 import { Scouts } from './collections/Scouts'
@@ -65,7 +66,7 @@ export default buildConfig({
       connectionString: process.env.DATABASE_URL || '',
     },
   }),
-  collections: [Campaigns, Customers, Scouts, Pages, Posts, Media, Categories, Users],
+  collections: [Campaigns, Customers, Products, Scouts, Pages, Posts, Media, Categories, Users],
   cors: [getServerSideURL()].filter(Boolean),
   globals: [Header, Footer],
   plugins,
