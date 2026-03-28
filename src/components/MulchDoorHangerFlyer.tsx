@@ -14,13 +14,7 @@ type FlyerProps = {
   backgroundImageUrl?: string
 }
 
-const defaultProducts = [
-  'Hardwood',
-  'Black',
-  'Cedar',
-  'Potting Soil',
-  'Manure',
-]
+const defaultProducts = ['Hardwood', 'Black', 'Cedar', 'Potting Soil', 'Manure']
 
 export default function MulchDoorHangerFlyer({
   scoutName,
@@ -102,9 +96,8 @@ function FlyerPanel({
         </h2>
 
         <p className="mt-8 text-[24px] leading-[1.35] text-blue-900">
-          I would like to speak to you about our Scout Spring fundraiser; We
-          offer high quality professional mulch from Jemasco only available to
-          landscapers and Scouts!
+          I would like to speak to you about our Scout Spring fundraiser; We offer high quality
+          professional mulch from Jemasco only available to landscapers and Scouts!
         </p>
 
         <p className="mt-8 text-center text-[22px] font-extrabold text-red-600">
@@ -139,8 +132,7 @@ function FlyerPanel({
         </InfoCard>
 
         <p className="mt-10 text-center text-[22px] font-semibold leading-snug text-blue-800">
-          All sales proceeds assist in sending Scouts to summer camp and fund
-          needed equipment.
+          All sales proceeds assist in sending Scouts to summer camp and fund needed equipment.
         </p>
 
         <div className="mt-10 text-center">
@@ -156,13 +148,7 @@ function FlyerPanel({
   )
 }
 
-function InfoCard({
-  children,
-  className = '',
-}: {
-  children: React.ReactNode
-  className?: string
-}) {
+function InfoCard({ children, className = '' }: { children: React.ReactNode; className?: string }) {
   return (
     <div
       className={`rounded-[26px] border-2 border-blue-700 bg-neutral-100 px-5 py-5 ${className}`}
@@ -171,5 +157,3 @@ function InfoCard({
     </div>
   )
 }
-
-
