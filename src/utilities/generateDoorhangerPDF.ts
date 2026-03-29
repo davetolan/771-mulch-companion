@@ -13,15 +13,12 @@ import {
 
 interface DoorhangerData {
   scoutName: string
-  campaignName: string
   saleEndDate: string
   deliveryDate: string
-  qrCodeBuffer: Buffer
+  qrCodeBuffer: Buffer | Uint8Array
   troopName?: string
   flyerEmail?: string
   flyerPhone?: string
-  flyerHeadline?: string
-  flyerBody?: string
 }
 
 interface PanelBounds {
@@ -373,7 +370,7 @@ function formatDoorhangerDate(dateValue: string): string {
 
 async function loadHeaderImage(pdfDoc: PDFDocument): Promise<PDFImage> {
   const imageBytes = await readFile(HEADER_IMAGE_PATH)
-  return pdfDoc.embedPng(imageBytes)
+  return pdfDoc.embedPng(new Uint8Array(imageBytes))
 }
 
 function drawFlyerPanel(
@@ -615,12 +612,14 @@ function drawFlyerPanel(
 export async function generateDoorhangerPDF(data: DoorhangerData): Promise<Buffer> {
   const pdfDoc = await PDFDocument.create()
   const page = pdfDoc.addPage([PAGE_WIDTH, PAGE_HEIGHT])
+  const qrCodeBytes =
+    data.qrCodeBuffer instanceof Uint8Array ? data.qrCodeBuffer : new Uint8Array(data.qrCodeBuffer)
 
   const [boldFont, regularFont, headerImage, qrImage] = await Promise.all([
     pdfDoc.embedFont(StandardFonts.HelveticaBold),
     pdfDoc.embedFont(StandardFonts.Helvetica),
     loadHeaderImage(pdfDoc),
-    pdfDoc.embedPng(data.qrCodeBuffer),
+    pdfDoc.embedPng(qrCodeBytes),
   ])
 
   const leftPanel: PanelBounds = {

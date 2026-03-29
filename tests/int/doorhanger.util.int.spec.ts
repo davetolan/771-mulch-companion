@@ -1,16 +1,25 @@
+import { Buffer } from 'node:buffer'
+
 import { describe, expect, it } from 'vitest'
 import { PDFDocument, StandardFonts } from 'pdf-lib'
 
 import {
   fitTextToWidth,
   formatDoorhangerDate,
+  generateDoorhangerPDF,
   truncateTextToWidth,
   wrapTextToWidth,
 } from '@/utilities/generateDoorhangerPDF'
+import { generateQRCodeDataURL } from '@/utilities/generateQRCode'
 
 async function getHelveticaFont() {
   const doc = await PDFDocument.create()
   return doc.embedFont(StandardFonts.Helvetica)
+}
+
+async function getQRCodeBuffer(url: string) {
+  const dataUrl = await generateQRCodeDataURL(url)
+  return Buffer.from(dataUrl.replace(/^data:image\/png;base64,/, ''), 'base64')
 }
 
 describe('doorhanger text bounds helpers', () => {
@@ -58,5 +67,31 @@ describe('doorhanger date formatting', () => {
 
   it('keeps already formatted dates unchanged when parsing fails', () => {
     expect(formatDoorhangerDate('Apr 15, 2026')).toBe('Apr 15, 2026')
+  })
+})
+
+describe('doorhanger PDF generation', () => {
+  it('creates a single portrait letter page for the side-by-side flyer layout', async () => {
+    const pdfBuffer = await generateDoorhangerPDF({
+      scoutName: 'William P. Seth',
+      saleEndDate: '2027-03-21',
+      deliveryDate: '2027-03-28',
+      qrCodeBuffer: await getQRCodeBuffer('https://example.com/fundraiser'),
+      troopName: '771',
+      flyerEmail: 'scout@example.com',
+      flyerPhone: '972-835-0410',
+    })
+
+    expect(pdfBuffer.byteLength).toBeGreaterThan(50_000)
+
+    const pdfDoc = await PDFDocument.load(new Uint8Array(pdfBuffer))
+    const pages = pdfDoc.getPages()
+
+    expect(pages).toHaveLength(1)
+
+    const { width, height } = pages[0].getSize()
+    expect(width).toBe(612)
+    expect(height).toBe(792)
+    expect(height).toBeGreaterThan(width)
   })
 })

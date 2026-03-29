@@ -56,6 +56,7 @@ export function ScoutDashboard({
   const [qrError, setQrError] = useState<string | null>(null)
   const [isDownloading, setIsDownloading] = useState(false)
   const [downloadError, setDownloadError] = useState<string | null>(null)
+  const [downloadMessage, setDownloadMessage] = useState<string | null>(null)
   const [isPreviewing, setIsPreviewing] = useState(false)
   const [flyerEmail, setFlyerEmail] = useState(scout.flyerEmail ?? '')
   const [flyerPhone, setFlyerPhone] = useState(scout.flyerPhone ?? '')
@@ -77,15 +78,20 @@ export function ScoutDashboard({
 
   useEffect(() => {
     if (!scout?.externalFundraisingUrl) {
+      setQrCodeDataUrl(null)
       setQrError('No external fundraising URL available.')
       return
     }
 
     generateQRCodeDataURL(scout.externalFundraisingUrl)
-      .then(setQrCodeDataUrl)
+      .then((dataUrl) => {
+        setQrCodeDataUrl(dataUrl)
+        setQrError(null)
+      })
       .catch((error) => {
         console.error('QR code generation failed', error)
         setQrError('Could not generate QR code.')
+        setQrCodeDataUrl(null)
       })
   }, [scout.externalFundraisingUrl])
 
@@ -97,6 +103,7 @@ export function ScoutDashboard({
 
     setIsDownloading(true)
     setDownloadError(null)
+    setDownloadMessage(null)
 
     try {
       const response = await fetch('/api/generate-doorhanger-pdf', {
@@ -113,8 +120,6 @@ export function ScoutDashboard({
           troopName: '771',
           flyerEmail: flyerEmail || scout.email,
           flyerPhone,
-          flyerHeadline: campaign.flyerHeadline,
-          flyerBody: campaign.flyerBody,
         }),
       })
 
@@ -132,6 +137,7 @@ export function ScoutDashboard({
       a.click()
       window.URL.revokeObjectURL(url)
       document.body.removeChild(a)
+      setDownloadMessage('Flyer PDF downloaded. If it did not open automatically, check your Downloads folder.')
     } catch (error) {
       console.error('Download error:', error)
       setDownloadError(
@@ -183,6 +189,10 @@ export function ScoutDashboard({
   const selectedRecipients = previousCampaignCustomers.filter((customer) =>
     selectedCustomerIds.includes(customer.id),
   )
+  const canDownloadFlyer = Boolean(qrCodeDataUrl) && !isDownloading
+  const flyerContactSummary = flyerPhone
+    ? `Flyer contact: ${flyerEmail || scout.email} and ${flyerPhone}`
+    : `Flyer contact: ${flyerEmail || scout.email}`
 
   const previewCustomer =
     previousCampaignCustomers.find((customer) => customer.id === previewCustomerId) ||
@@ -459,9 +469,32 @@ export function ScoutDashboard({
               current campaign information.
             </p>
 
-            {qrError && <p className="text-red-600 mb-2">{qrError}</p>}
+            <div className="mb-4 rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm text-blue-900">
+              <p className="font-medium">Preview before you download</p>
+              <p className="mt-1">
+                The PDF download is designed to match this flyer preview and uses your saved flyer
+                contact details.
+              </p>
+              <p className="mt-2">{flyerContactSummary}</p>
+            </div>
 
-            {downloadError && <p className="text-red-600 mb-2">{downloadError}</p>}
+            {qrError && (
+              <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+                {qrError}
+              </div>
+            )}
+
+            {downloadError && (
+              <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+                {downloadError}
+              </div>
+            )}
+
+            {downloadMessage && (
+              <div className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">
+                {downloadMessage}
+              </div>
+            )}
 
             {qrCodeDataUrl ? (
               <div className="flex flex-col items-center gap-3 mb-4">
@@ -481,9 +514,9 @@ export function ScoutDashboard({
             <div className="flex flex-wrap items-center gap-3">
               <button
                 onClick={handleDownloadFlyer}
-                disabled={isDownloading || !qrCodeDataUrl}
+                disabled={!canDownloadFlyer}
                 className={`${
-                  isDownloading || !qrCodeDataUrl
+                  !canDownloadFlyer
                     ? 'bg-gray-400 cursor-not-allowed'
                     : 'bg-blue-600 hover:bg-blue-700'
                 } text-white font-medium py-2 px-4 rounded-lg transition duration-200`}
@@ -500,9 +533,18 @@ export function ScoutDashboard({
               </button>
             </div>
 
+            {!qrCodeDataUrl && !qrError && (
+              <p className="mt-3 text-sm text-gray-500">
+                The download button will be available as soon as your QR code is ready.
+              </p>
+            )}
+
             {isPreviewing && (
               <div className="mt-6 rounded-lg border border-blue-200 bg-white p-4 shadow-sm">
                 <h3 className="mb-3 text-lg font-semibold text-gray-900">Flyer Preview</h3>
+                <p className="mb-4 text-sm text-gray-600">
+                  This preview reflects the same flyer layout used for the PDF download.
+                </p>
                 <MulchDoorHangerFlyer
                   scoutName={scout.displayName}
                   fundraiserUrl={scout.externalFundraisingUrl}

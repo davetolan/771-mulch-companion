@@ -11,8 +11,6 @@ interface GeneratePDFRequest {
   troopName?: string
   flyerEmail?: string
   flyerPhone?: string
-  flyerHeadline?: string
-  flyerBody?: string
 }
 
 // Convert data URL to Buffer
@@ -34,15 +32,12 @@ export async function POST(request: NextRequest) {
     // Generate PDF
     const pdfBuffer = await generateDoorhangerPDF({
       scoutName: body.scoutName,
-      campaignName: body.campaignName,
       saleEndDate: body.saleEndDate,
       deliveryDate: body.deliveryDate,
       qrCodeBuffer,
       troopName: body.troopName,
       flyerEmail: body.flyerEmail,
       flyerPhone: body.flyerPhone,
-      flyerHeadline: body.flyerHeadline,
-      flyerBody: body.flyerBody,
     })
 
     // Create filename
