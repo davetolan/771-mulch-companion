@@ -528,6 +528,14 @@ export function ScoutDashboard({
                 who should receive it, and send through Resend.
               </p>
 
+              <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">
+                Emails sent from this tool will not come directly from your personal email address.
+                They will be sent from the Troop 771 sending address, such as
+                `troop771@tolantech.com`, and replies will go to your flyer email when one is set.
+                If you want the message to come from your own inbox, use the preview and `Copy
+                Preview`, then send it from your email account instead.
+              </div>
+
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div className="rounded-lg border border-gray-200 p-4">
                   <p className="text-sm font-medium text-gray-700">Previous Campaign</p>
