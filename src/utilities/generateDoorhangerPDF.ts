@@ -2,7 +2,14 @@ import { readFile } from 'node:fs/promises'
 import path from 'node:path'
 
 import { format, isValid, parseISO } from 'date-fns'
-import { PDFDocument, type PDFFont, type PDFImage, type PDFPage, StandardFonts } from 'pdf-lib'
+import {
+  PDFDocument,
+  type PDFFont,
+  type PDFImage,
+  type PDFPage,
+  StandardFonts,
+  rgb,
+} from 'pdf-lib'
 
 interface DoorhangerData {
   scoutName: string
@@ -17,133 +24,56 @@ interface DoorhangerData {
   flyerBody?: string
 }
 
-interface TextPlacement {
+interface PanelBounds {
   x: number
   y: number
-  size: number
-  maxWidth: number
-  minSize?: number
+  width: number
+  height: number
 }
 
-interface WrappedTextPlacement extends TextPlacement {
-  lineHeight: number
-  maxLines: number
+interface FitResult {
+  lines: string[]
+  fontSize: number
 }
 
-const TEMPLATE_PDF_PATH = path.join(process.cwd(), 'public', 'templates', 'doorhanger-template.pdf')
 const DATE_FORMAT = 'MMM dd, yyyy'
-
-const SCOUT_NAME_X = 50
-const TOP_SCOUT_NAME_Y = 674
-const BOTTOM_SCOUT_NAME_Y = 365
-const SCOUT_NAME_SIZE = 15
-const SCOUT_NAME_MAX_WIDTH = 165
-const SCOUT_NAME_MIN_SIZE = 11
-
-const SALE_END_X = 42
-const TOP_SALE_END_Y = 542
-const BOTTOM_SALE_END_Y = 234
-const SALE_END_SIZE = 14
-const SALE_END_MAX_WIDTH = 190
-const SALE_END_MIN_SIZE = 11
-
-const TROOP_CONTACT_X = 54
-const TOP_TROOP_CONTACT_Y = 511
-const BOTTOM_TROOP_CONTACT_Y = 202
-const TROOP_CONTACT_SIZE = 8
-const TROOP_CONTACT_MAX_WIDTH = 170
-const TROOP_CONTACT_MIN_SIZE = 7
-
-const DELIVERY_X = 72
-const TOP_DELIVERY_Y = 440
-const BOTTOM_DELIVERY_Y = 132
-const DELIVERY_SIZE = 16
-const DELIVERY_MAX_WIDTH = 160
-const DELIVERY_MIN_SIZE = 11
-
-const QR_X = 77
-const TOP_QR_Y = 305
-const BOTTOM_QR_Y = -2
-const QR_SIZE = 106
-
+const HEADER_IMAGE_PATH = path.join(process.cwd(), 'public', 'images', 'scout-flag.jpg.png')
 const DEFAULT_CONTACT_EMAIL = 'contact@troop771.org'
+const DEFAULT_PRODUCTS = ['Black', 'Hardwood', 'Cedar', 'Compost', 'Soil']
 
-const TOP_SCOUT_NAME: TextPlacement = {
-  x: SCOUT_NAME_X,
-  y: TOP_SCOUT_NAME_Y,
-  size: SCOUT_NAME_SIZE,
-  maxWidth: SCOUT_NAME_MAX_WIDTH,
-  minSize: SCOUT_NAME_MIN_SIZE,
+const PAGE_WIDTH = 612
+const PAGE_HEIGHT = 792
+const PAGE_MARGIN = 18
+const PANEL_GAP = 18
+const PANEL_WIDTH = (PAGE_WIDTH - PAGE_MARGIN * 2 - PANEL_GAP) / 2
+const PANEL_HEIGHT = PAGE_HEIGHT - PAGE_MARGIN * 2
+
+const COLORS = {
+  panelBackground: rgb(0.961, 0.961, 0.961),
+  cardBackground: rgb(1, 1, 1),
+  blue: rgb(0.118, 0.278, 0.671),
+  blueText: rgb(0.098, 0.192, 0.475),
+  red: rgb(0.89, 0.153, 0.176),
+  white: rgb(1, 1, 1),
 }
-
-const BOTTOM_SCOUT_NAME: TextPlacement = {
-  x: SCOUT_NAME_X,
-  y: BOTTOM_SCOUT_NAME_Y,
-  size: SCOUT_NAME_SIZE,
-  maxWidth: SCOUT_NAME_MAX_WIDTH,
-  minSize: SCOUT_NAME_MIN_SIZE,
-}
-
-const TOP_SALE_END: TextPlacement = {
-  x: SALE_END_X,
-  y: TOP_SALE_END_Y,
-  size: SALE_END_SIZE,
-  maxWidth: SALE_END_MAX_WIDTH,
-  minSize: SALE_END_MIN_SIZE,
-}
-
-const BOTTOM_SALE_END: TextPlacement = {
-  x: SALE_END_X,
-  y: BOTTOM_SALE_END_Y,
-  size: SALE_END_SIZE,
-  maxWidth: SALE_END_MAX_WIDTH,
-  minSize: SALE_END_MIN_SIZE,
-}
-
-const TOP_TROOP_CONTACT: WrappedTextPlacement = {
-  x: TROOP_CONTACT_X,
-  y: TOP_TROOP_CONTACT_Y,
-  size: TROOP_CONTACT_SIZE,
-  maxWidth: TROOP_CONTACT_MAX_WIDTH,
-  minSize: TROOP_CONTACT_MIN_SIZE,
-  lineHeight: 9,
-  maxLines: 2,
-}
-
-const BOTTOM_TROOP_CONTACT: WrappedTextPlacement = {
-  x: TROOP_CONTACT_X,
-  y: BOTTOM_TROOP_CONTACT_Y,
-  size: TROOP_CONTACT_SIZE,
-  maxWidth: TROOP_CONTACT_MAX_WIDTH,
-  minSize: TROOP_CONTACT_MIN_SIZE,
-  lineHeight: 9,
-  maxLines: 2,
-}
-
-const TOP_DELIVERY: TextPlacement = {
-  x: DELIVERY_X,
-  y: TOP_DELIVERY_Y,
-  size: DELIVERY_SIZE,
-  maxWidth: DELIVERY_MAX_WIDTH,
-  minSize: DELIVERY_MIN_SIZE,
-}
-
-const BOTTOM_DELIVERY: TextPlacement = {
-  x: DELIVERY_X,
-  y: BOTTOM_DELIVERY_Y,
-  size: DELIVERY_SIZE,
-  maxWidth: DELIVERY_MAX_WIDTH,
-  minSize: DELIVERY_MIN_SIZE,
-}
-
-const TOP_QR = { x: QR_X, y: TOP_QR_Y, size: QR_SIZE }
-const BOTTOM_QR = { x: QR_X, y: BOTTOM_QR_Y, size: QR_SIZE }
 
 function normalizeWhitespace(value: string): string {
   return value.replace(/\s+/g, ' ').trim()
 }
 
-export function truncateTextToWidth(text: string, font: PDFFont, fontSize: number, maxWidth: number): string {
+function splitIntoLines(text: string): string[] {
+  return text
+    .split('\n')
+    .map((line) => normalizeWhitespace(line))
+    .filter(Boolean)
+}
+
+export function truncateTextToWidth(
+  text: string,
+  font: PDFFont,
+  fontSize: number,
+  maxWidth: number,
+): string {
   const normalized = normalizeWhitespace(text)
   if (!normalized) return ''
 
@@ -196,7 +126,7 @@ export function wrapTextToWidth(
   font: PDFFont,
   fontSize: number,
   maxWidth: number,
-  maxLines: number,
+  maxLines?: number,
 ): string[] {
   const normalized = normalizeWhitespace(text)
   if (!normalized) return []
@@ -206,76 +136,156 @@ export function wrapTextToWidth(
   let currentLine = ''
 
   for (const word of words) {
-    const candidateLine = currentLine ? `${currentLine} ${word}` : word
+    const candidate = currentLine ? `${currentLine} ${word}` : word
 
-    if (font.widthOfTextAtSize(candidateLine, fontSize) <= maxWidth) {
-      currentLine = candidateLine
+    if (font.widthOfTextAtSize(candidate, fontSize) <= maxWidth) {
+      currentLine = candidate
       continue
     }
 
-    if (!currentLine) {
-      lines.push(truncateTextToWidth(word, font, fontSize, maxWidth))
-    } else {
+    if (currentLine) {
       lines.push(currentLine)
       currentLine = word
+      if (maxLines && lines.length === maxLines) {
+        return lines
+      }
+      continue
     }
 
-    if (lines.length === maxLines) {
+    lines.push(truncateTextToWidth(word, font, fontSize, maxWidth))
+    if (maxLines && lines.length === maxLines) {
       return lines
     }
   }
 
-  if (currentLine && lines.length < maxLines) {
+  if (currentLine) {
     lines.push(currentLine)
   }
 
-  if (lines.length > maxLines) {
-    return lines.slice(0, maxLines)
+  if (!maxLines) {
+    return lines
   }
 
-  if (lines.length === maxLines && words.join(' ').length > lines.join(' ').length) {
-    lines[maxLines - 1] = truncateTextToWidth(lines[maxLines - 1], font, fontSize, maxWidth)
+  if (lines.length <= maxLines) {
+    return lines
   }
 
-  return lines
+  return lines.slice(0, maxLines)
 }
 
-function drawFittedText(page: PDFPage, value: string, placement: TextPlacement, font: PDFFont) {
-  const fitted = fitTextToWidth(value, font, placement.size, placement.maxWidth, placement.minSize)
+function drawRoundedRect(
+  page: PDFPage,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  borderRadius: number,
+  fillColor: ReturnType<typeof rgb>,
+  borderColor: ReturnType<typeof rgb>,
+  borderWidth: number,
+) {
+  const radius = Math.min(borderRadius, width / 2, height / 2)
+  const right = x + width
+  const top = y + height
+  const path = [
+    `M ${x + radius} ${y}`,
+    `L ${right - radius} ${y}`,
+    `Q ${right} ${y} ${right} ${y + radius}`,
+    `L ${right} ${top - radius}`,
+    `Q ${right} ${top} ${right - radius} ${top}`,
+    `L ${x + radius} ${top}`,
+    `Q ${x} ${top} ${x} ${top - radius}`,
+    `L ${x} ${y + radius}`,
+    `Q ${x} ${y} ${x + radius} ${y}`,
+    'Z',
+  ].join(' ')
 
-  if (!fitted.text) return
-
-  page.drawText(fitted.text, {
-    x: placement.x,
-    y: placement.y,
-    size: fitted.size,
-    font,
-    maxWidth: placement.maxWidth,
+  page.drawSvgPath(path, {
+    color: fillColor,
+    borderColor,
+    borderWidth,
   })
 }
 
-function drawWrappedText(page: PDFPage, value: string, placement: WrappedTextPlacement, font: PDFFont) {
-  const fitted = fitTextToWidth(value, font, placement.size, placement.maxWidth, placement.minSize)
-  const lines = wrapTextToWidth(
-    fitted.text,
-    font,
-    fitted.size,
-    placement.maxWidth,
-    placement.maxLines,
-  )
+function fitWrappedText(
+  text: string,
+  font: PDFFont,
+  maxWidth: number,
+  maxLines: number,
+  preferredSize: number,
+  minSize: number,
+): FitResult {
+  let fontSize = preferredSize
 
+  while (fontSize >= minSize) {
+    const lines = wrapTextToWidth(text, font, fontSize, maxWidth)
+    if (lines.length <= maxLines) {
+      return { lines, fontSize }
+    }
+
+    fontSize -= 0.5
+  }
+
+  return {
+    lines: wrapTextToWidth(text, font, minSize, maxWidth).slice(0, maxLines),
+    fontSize: minSize,
+  }
+}
+
+function drawCenteredLines(
+  page: PDFPage,
+  lines: string[],
+  centerX: number,
+  topY: number,
+  font: PDFFont,
+  fontSize: number,
+  lineHeight: number,
+  color: ReturnType<typeof rgb>,
+) {
   lines.forEach((line, index) => {
+    const width = font.widthOfTextAtSize(line, fontSize)
     page.drawText(line, {
-      x: placement.x,
-      y: placement.y - index * placement.lineHeight,
-      size: fitted.size,
+      x: centerX - width / 2,
+      y: topY - fontSize - index * lineHeight,
+      size: fontSize,
       font,
-      maxWidth: placement.maxWidth,
+      color,
     })
   })
 }
 
-export function formatDoorhangerDate(dateValue: string): string {
+function drawCard(page: PDFPage, x: number, y: number, width: number, height: number) {
+  drawRoundedRect(page, x, y, width, height, 16, COLORS.cardBackground, COLORS.blue, 1.5)
+}
+
+function drawImageCover(page: PDFPage, image: PDFImage, x: number, y: number, width: number, height: number) {
+  const imageRatio = image.width / image.height
+  const boxRatio = width / height
+
+  let drawWidth = width
+  let drawHeight = height
+  let drawX = x
+  let drawY = y
+
+  if (imageRatio > boxRatio) {
+    drawHeight = height
+    drawWidth = height * imageRatio
+    drawX = x - (drawWidth - width) / 2
+  } else {
+    drawWidth = width
+    drawHeight = width / imageRatio
+    drawY = y - (drawHeight - height) / 2
+  }
+
+  page.drawImage(image, {
+    x: drawX,
+    y: drawY,
+    width: drawWidth,
+    height: drawHeight,
+  })
+}
+
+function formatDoorhangerDate(dateValue: string): string {
   const parsed = parseISO(dateValue)
   if (!isValid(parsed)) {
     return dateValue
@@ -284,63 +294,252 @@ export function formatDoorhangerDate(dateValue: string): string {
   return format(parsed, DATE_FORMAT)
 }
 
-function drawTemplateFields(
+async function loadHeaderImage(pdfDoc: PDFDocument): Promise<PDFImage> {
+  const imageBytes = await readFile(HEADER_IMAGE_PATH)
+  return pdfDoc.embedPng(imageBytes)
+}
+
+function drawFlyerPanel(
   page: PDFPage,
+  bounds: PanelBounds,
   data: DoorhangerData,
-  mode: 'top' | 'bottom',
-  fonts: { bold: PDFFont; regular: PDFFont },
-  qrImage: PDFImage,
+  assets: { headerImage: PDFImage; qrImage: PDFImage; boldFont: PDFFont; regularFont: PDFFont },
 ) {
-  const contactLines = [
-    data.flyerPhone ? `Call/Text: ${data.flyerPhone}` : 'Call/Text:',
-    `Email: ${data.flyerEmail || DEFAULT_CONTACT_EMAIL}`,
-  ].join('\n')
+  const { x, y, width, height } = bounds
+  const inset = 12
+  const contentX = x + inset
+  const contentWidth = width - inset * 2
+  const centerX = x + width / 2
 
-  if (mode === 'top') {
-    drawFittedText(page, data.scoutName, TOP_SCOUT_NAME, fonts.bold)
-    drawFittedText(page, formatDoorhangerDate(data.saleEndDate), TOP_SALE_END, fonts.bold)
-    drawWrappedText(page, contactLines, TOP_TROOP_CONTACT, fonts.regular)
-    drawFittedText(page, formatDoorhangerDate(data.deliveryDate), TOP_DELIVERY, fonts.bold)
+  drawRoundedRect(page, x, y, width, height, 20, COLORS.panelBackground, COLORS.blue, 2)
 
-    page.drawImage(qrImage, {
-      x: TOP_QR.x,
-      y: TOP_QR.y,
-      width: TOP_QR.size,
-      height: TOP_QR.size,
+  const imageHeight = 230
+  drawImageCover(page, assets.headerImage, x + 1, y + height - imageHeight - 1, width - 2, imageHeight)
+
+  let cursorY = y + height - imageHeight - 46
+
+  const nameFit = fitWrappedText(
+    `My name is ${data.scoutName}`,
+    assets.boldFont,
+    contentWidth - 20,
+    2,
+    18,
+    12,
+  )
+  drawCenteredLines(
+    page,
+    nameFit.lines,
+    centerX,
+    cursorY,
+    assets.boldFont,
+    nameFit.fontSize,
+    nameFit.fontSize * 1.2,
+    COLORS.blueText,
+  )
+  cursorY -= nameFit.lines.length * nameFit.fontSize * 1.2 + 12
+
+  const introText =
+    'I would like to speak to you about our Scout Spring fundraiser; We offer high quality professional mulch from Jemasco only available to landscapers and Scouts!'
+  const introFit = fitWrappedText(introText, assets.regularFont, contentWidth - 12, 5, 10.5, 8.5)
+  drawCenteredLines(
+    page,
+    introFit.lines,
+    centerX,
+    cursorY,
+    assets.regularFont,
+    introFit.fontSize,
+    introFit.fontSize * 1.35,
+    COLORS.blueText,
+  )
+  cursorY -= introFit.lines.length * introFit.fontSize * 1.35 + 18
+
+  const productFit = fitWrappedText(
+    DEFAULT_PRODUCTS.join(', '),
+    assets.boldFont,
+    contentWidth - 20,
+    2,
+    12,
+    9,
+  )
+  drawCenteredLines(
+    page,
+    productFit.lines,
+    centerX,
+    cursorY,
+    assets.boldFont,
+    productFit.fontSize,
+    productFit.fontSize * 1.2,
+    COLORS.red,
+  )
+  cursorY -= productFit.lines.length * productFit.fontSize * 1.25 + 18
+
+  const orderCardHeight = 88
+  drawCard(page, contentX, cursorY - orderCardHeight, contentWidth, orderCardHeight)
+
+  const orderDeadlineLine = `Order Deadline: ${formatDoorhangerDate(data.saleEndDate)}`
+  const orderFit = fitWrappedText(orderDeadlineLine, assets.boldFont, contentWidth - 22, 1, 11, 9)
+  drawCenteredLines(
+    page,
+    orderFit.lines,
+    centerX,
+    cursorY - 14,
+    assets.boldFont,
+    orderFit.fontSize,
+    orderFit.fontSize * 1.1,
+    COLORS.blueText,
+  )
+
+  const contactLines = splitIntoLines(
+    [
+      'Questions?',
+      data.flyerPhone ? `Call/Text: ${data.flyerPhone}` : 'Call/Text:',
+      `Email: ${data.flyerEmail || DEFAULT_CONTACT_EMAIL}`,
+    ].join('\n'),
+  )
+
+  contactLines.forEach((line, index) => {
+    const font = index === 0 ? assets.boldFont : assets.regularFont
+    const size = index === 0 ? 9.25 : 8.25
+    const widthAtSize = font.widthOfTextAtSize(line, size)
+    page.drawText(line, {
+      x: centerX - widthAtSize / 2,
+      y: cursorY - 34 - index * 12,
+      size,
+      font,
+      color: COLORS.blueText,
     })
-
-    return
-  }
-
-  drawFittedText(page, data.scoutName, BOTTOM_SCOUT_NAME, fonts.bold)
-  drawFittedText(page, formatDoorhangerDate(data.saleEndDate), BOTTOM_SALE_END, fonts.bold)
-  drawWrappedText(page, contactLines, BOTTOM_TROOP_CONTACT, fonts.regular)
-  drawFittedText(page, formatDoorhangerDate(data.deliveryDate), BOTTOM_DELIVERY, fonts.bold)
-
-  page.drawImage(qrImage, {
-    x: BOTTOM_QR.x,
-    y: BOTTOM_QR.y,
-    width: BOTTOM_QR.size,
-    height: BOTTOM_QR.size,
   })
+  cursorY -= orderCardHeight + 16
+
+  const deliveryCardHeight = 58
+  drawCard(page, contentX, cursorY - deliveryCardHeight, contentWidth, deliveryCardHeight)
+  const deliveryLabelWidth = assets.boldFont.widthOfTextAtSize('Delivery On', 10)
+  page.drawText('Delivery On', {
+    x: centerX - deliveryLabelWidth / 2,
+    y: cursorY - 18,
+    size: 10,
+    font: assets.boldFont,
+    color: COLORS.blueText,
+  })
+  const deliveryFit = fitWrappedText(
+    formatDoorhangerDate(data.deliveryDate),
+    assets.boldFont,
+    contentWidth - 20,
+    1,
+    13,
+    10,
+  )
+  drawCenteredLines(
+    page,
+    deliveryFit.lines,
+    centerX,
+    cursorY - 28,
+    assets.boldFont,
+    deliveryFit.fontSize,
+    deliveryFit.fontSize,
+    COLORS.red,
+  )
+  cursorY -= deliveryCardHeight + 16
+
+  const qrCardHeight = 128
+  drawCard(page, contentX, cursorY - qrCardHeight, contentWidth, qrCardHeight)
+  const orderTodayWidth = assets.boldFont.widthOfTextAtSize('Order Today!', 12)
+  page.drawText('Order Today!', {
+    x: centerX - orderTodayWidth / 2,
+    y: cursorY - 18,
+    size: 12,
+    font: assets.boldFont,
+    color: COLORS.red,
+  })
+
+  const qrSize = 76
+  drawRoundedRect(
+    page,
+    centerX - qrSize / 2 - 6,
+    cursorY - 106,
+    qrSize + 12,
+    qrSize + 12,
+    10,
+    COLORS.white,
+    COLORS.white,
+    0,
+  )
+  page.drawImage(assets.qrImage, {
+    x: centerX - qrSize / 2,
+    y: cursorY - 100,
+    width: qrSize,
+    height: qrSize,
+  })
+  cursorY -= qrCardHeight + 22
+
+  const closingText =
+    'All sales proceeds assist in sending Scouts to summer camp and fund needed equipment.'
+  const closingFit = fitWrappedText(closingText, assets.boldFont, contentWidth - 12, 3, 9.25, 8)
+  drawCenteredLines(
+    page,
+    closingFit.lines,
+    centerX,
+    cursorY,
+    assets.boldFont,
+    closingFit.fontSize,
+    closingFit.fontSize * 1.25,
+    COLORS.blueText,
+  )
+  cursorY -= closingFit.lines.length * closingFit.fontSize * 1.25 + 18
+
+  const thankYouWidth = assets.boldFont.widthOfTextAtSize('Thank you for supporting', 10)
+  page.drawText('Thank you for supporting', {
+    x: centerX - thankYouWidth / 2,
+    y: cursorY - 10,
+    size: 10,
+    font: assets.boldFont,
+    color: COLORS.blue,
+  })
+
+  const troopLabel = `Troop ${data.troopName?.replace(/^Troop\s*/i, '') || '771'}`
+  const troopFit = fitWrappedText(troopLabel, assets.boldFont, contentWidth - 8, 1, 20, 14)
+  drawCenteredLines(
+    page,
+    troopFit.lines,
+    centerX,
+    cursorY - 16,
+    assets.boldFont,
+    troopFit.fontSize,
+    troopFit.fontSize,
+    COLORS.blueText,
+  )
 }
 
 export async function generateDoorhangerPDF(data: DoorhangerData): Promise<Buffer> {
-  const templateBytes = await readFile(TEMPLATE_PDF_PATH)
-  const pdfDoc = await PDFDocument.load(templateBytes)
+  const pdfDoc = await PDFDocument.create()
+  const page = pdfDoc.addPage([PAGE_WIDTH, PAGE_HEIGHT])
 
-  const [page] = pdfDoc.getPages()
-  if (!page) {
-    throw new Error('Doorhanger template does not include a drawable page')
+  const [boldFont, regularFont, headerImage, qrImage] = await Promise.all([
+    pdfDoc.embedFont(StandardFonts.HelveticaBold),
+    pdfDoc.embedFont(StandardFonts.Helvetica),
+    loadHeaderImage(pdfDoc),
+    pdfDoc.embedPng(data.qrCodeBuffer),
+  ])
+
+  const leftPanel: PanelBounds = {
+    x: PAGE_MARGIN,
+    y: PAGE_MARGIN,
+    width: PANEL_WIDTH,
+    height: PANEL_HEIGHT,
   }
 
-  const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold)
-  const regularFont = await pdfDoc.embedFont(StandardFonts.Helvetica)
-  const qrImage = await pdfDoc.embedPng(data.qrCodeBuffer)
+  const rightPanel: PanelBounds = {
+    x: leftPanel.x + PANEL_WIDTH + PANEL_GAP,
+    y: PAGE_MARGIN,
+    width: PANEL_WIDTH,
+    height: PANEL_HEIGHT,
+  }
 
-  drawTemplateFields(page, data, 'top', { bold: boldFont, regular: regularFont }, qrImage)
-  drawTemplateFields(page, data, 'bottom', { bold: boldFont, regular: regularFont }, qrImage)
+  drawFlyerPanel(page, leftPanel, data, { headerImage, qrImage, boldFont, regularFont })
+  drawFlyerPanel(page, rightPanel, data, { headerImage, qrImage, boldFont, regularFont })
 
   const pdfBytes = await pdfDoc.save()
   return Buffer.from(pdfBytes)
 }
+
+export { formatDoorhangerDate }

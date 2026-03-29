@@ -105,6 +105,7 @@ function FlyerPanel({
 
         <InfoCard className="mt-5">
           <div className="text-center text-[28px] font-extrabold leading-tight text-red-600">
+            <p className="mb-1 text-[20px] text-blue-800">Delivery On</p>
             <p>{deliveryDate}</p>
           </div>
         </InfoCard>

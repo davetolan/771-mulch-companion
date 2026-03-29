@@ -110,7 +110,7 @@ export function ScoutDashboard({
           saleEndDate: format(new Date(campaign.saleEndDate), 'MMM dd, yyyy'),
           deliveryDate: format(new Date(campaign.deliveryDate), 'MMM dd, yyyy'),
           externalFundraisingUrl: scout.externalFundraisingUrl,
-          troopName: 'Scout Troop Mulch Fundraiser',
+          troopName: '771',
           flyerEmail: flyerEmail || scout.email,
           flyerPhone,
           flyerHeadline: campaign.flyerHeadline,
