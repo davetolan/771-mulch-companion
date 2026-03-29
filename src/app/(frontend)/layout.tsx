@@ -40,7 +40,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             <Header />
           </div>
           {children}
-          <Footer />
+          <div id="site-footer">
+            <Footer />
+          </div>
         </Providers>
       </body>
     </html>

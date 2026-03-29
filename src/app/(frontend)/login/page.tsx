@@ -53,6 +53,7 @@ export default function ScoutLoginPage() {
 
   return (
     <main className="mx-auto max-w-md px-4 py-10 text-gray-900">
+      <style>{'#site-header,#site-footer{display:none !important;}'}</style>
       <h1 className="text-3xl font-bold">Scout Login</h1>
       <p className="mt-2 text-sm text-gray-600">Use your Scout account credentials to access your fundraiser dashboard.</p>
 
@@ -88,8 +89,6 @@ export default function ScoutLoginPage() {
         >
           {loading ? 'Signing in…' : 'Sign in'}
         </button>
-
-        <p className="text-xs text-gray-500">Admin users should use <a className="text-primary underline" href="/admin/login">admin login</a>.</p>
       </form>
     </main>
   )

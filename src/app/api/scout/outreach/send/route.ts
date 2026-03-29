@@ -181,6 +181,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: 'Missing RESEND_FROM_EMAIL' }, { status: 500 })
     }
 
+    const replyToEmail = scout.flyerEmail || scout.email
+
     let sentCount = 0
     let failedCount = 0
 
@@ -208,7 +210,7 @@ export async function POST(request: Request) {
       try {
         const resendEmailId = await sendWithResend({
           from: fromEmail,
-          replyTo: scout.email,
+          replyTo: replyToEmail,
           subject: rendered.subject,
           text: rendered.body,
           to: customer.email,

@@ -302,6 +302,20 @@ export function ScoutDashboard({
     }
   }
 
+  const handleCopyPreview = async () => {
+    if (!renderedPreview) return
+
+    try {
+      await navigator.clipboard.writeText(
+        `Subject: ${renderedPreview.subject}\n\n${renderedPreview.body}`,
+      )
+      setCopyMessage('Copied email preview.')
+    } catch (error) {
+      console.error('Copy preview failed', error)
+      setCopyMessage('Could not copy email preview.')
+    }
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 py-8 text-gray-900">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -671,10 +685,20 @@ export function ScoutDashboard({
 
                   {renderedPreview && previewCustomer && (
                     <div className="rounded-lg border border-gray-200 p-4">
-                      <h3 className="text-lg font-semibold text-gray-900">Preview</h3>
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <h3 className="text-lg font-semibold text-gray-900">Preview</h3>
+                        <button
+                          type="button"
+                          onClick={handleCopyPreview}
+                          className="rounded-lg bg-slate-100 px-3 py-2 text-sm font-medium text-slate-900 transition duration-200 hover:bg-slate-200"
+                        >
+                          Copy Preview
+                        </button>
+                      </div>
                       <p className="mt-2 text-sm text-gray-600">
                         Showing merged preview for {previewCustomer.name}
                       </p>
+                      {copyMessage && <p className="mt-2 text-sm text-gray-600">{copyMessage}</p>}
                       <p className="mt-4 text-sm font-medium text-gray-700">Subject</p>
                       <p className="mt-1 text-gray-900">{renderedPreview.subject}</p>
                       <p className="mt-4 text-sm font-medium text-gray-700">Body</p>
