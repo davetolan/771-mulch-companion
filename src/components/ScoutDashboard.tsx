@@ -512,7 +512,7 @@ export function ScoutDashboard({
                   email={flyerEmail || scout.email}
                   troopNumber="771"
                   products={['Black', 'Hardwood', 'Cedar', 'Compost', 'Soil']}
-                  backgroundImageUrl="/images/scout-flag.jpg"
+                  backgroundImageUrl="/images/scout-flag.jpg.png"
                 />
               </div>
             )}

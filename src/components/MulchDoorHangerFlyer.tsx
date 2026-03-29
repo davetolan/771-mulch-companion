@@ -25,7 +25,7 @@ export default function MulchDoorHangerFlyer({
   email,
   troopNumber = '771',
   products = defaultProducts,
-  backgroundImageUrl = '/images/scout-flag.jpg',
+  backgroundImageUrl = '/images/scout-flag.jpg.png',
 }: FlyerProps) {
   return (
     <div className="mx-auto w-full max-w-[1100px] bg-white p-4 print:max-w-none print:p-0">
@@ -75,19 +75,6 @@ function FlyerPanel({
           className="h-[380px] w-full bg-cover bg-center"
           style={{ backgroundImage: `url(${backgroundImageUrl})` }}
         />
-
-        <div className="absolute left-1/2 top-10 h-36 w-36 -translate-x-1/2 rounded-full border-[6px] border-dashed border-white/90" />
-
-        <div className="absolute left-1/2 top-24 h-44 w-[6px] -translate-x-1/2 rotate-[-50deg] rounded-full bg-white/90" />
-
-        <div className="absolute bottom-[-28px] left-1/2 w-[78%] -translate-x-1/2 rounded-[28px] border-2 border-red-500 bg-white px-6 py-4 text-center shadow-sm">
-          <p className="text-[24px] font-extrabold uppercase tracking-wide text-blue-800">
-            Support your local Scouts Troop {troopNumber}
-          </p>
-          <p className="text-[22px] font-bold text-blue-800">
-            by purchasing Mulch and Potting Soil
-          </p>
-        </div>
       </div>
 
       <div className="px-8 pb-8 pt-14">
