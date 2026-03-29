@@ -36,6 +36,19 @@ interface FitResult {
   fontSize: number
 }
 
+interface FlyerAssets {
+  headerImage: PDFImage
+  qrImage: PDFImage
+  boldFont: PDFFont
+  regularFont: PDFFont
+}
+
+interface TextStyle {
+  color: ReturnType<typeof rgb>
+  font: PDFFont
+  size: number
+}
+
 const DATE_FORMAT = 'MMM dd, yyyy'
 const HEADER_IMAGE_PATH = path.join(process.cwd(), 'public', 'images', 'scout-flag.jpg.png')
 const DEFAULT_CONTACT_EMAIL = 'contact@troop771.org'
@@ -47,6 +60,49 @@ const PAGE_MARGIN = 18
 const PANEL_GAP = 18
 const PANEL_WIDTH = (PAGE_WIDTH - PAGE_MARGIN * 2 - PANEL_GAP) / 2
 const PANEL_HEIGHT = PAGE_HEIGHT - PAGE_MARGIN * 2
+
+const PANEL_LAYOUT = {
+  borderRadius: 20,
+  borderWidth: 2,
+  inset: 12,
+  imageHeight: 230,
+  imageBottomGap: 46,
+  sectionGap: 16,
+  closingGap: 22,
+  contentGap: 18,
+  qrInset: 6,
+} as const
+
+const CARD_LAYOUT = {
+  borderRadius: 16,
+  borderWidth: 1.5,
+  orderHeight: 88,
+  deliveryHeight: 58,
+  qrHeight: 128,
+} as const
+
+const FONT_SIZES = {
+  namePreferred: 18,
+  nameMin: 12,
+  introPreferred: 10.5,
+  introMin: 8.5,
+  productsPreferred: 12,
+  productsMin: 9,
+  orderPreferred: 11,
+  orderMin: 9,
+  contactHeading: 9.25,
+  contactBody: 8.25,
+  deliveryLabel: 10,
+  deliveryPreferred: 13,
+  deliveryMin: 10,
+  orderToday: 12,
+  qr: 76,
+  closingPreferred: 9.25,
+  closingMin: 8,
+  thankYou: 10,
+  troopPreferred: 20,
+  troopMin: 14,
+} as const
 
 const COLORS = {
   panelBackground: rgb(0.961, 0.961, 0.961),
@@ -255,7 +311,28 @@ function drawCenteredLines(
 }
 
 function drawCard(page: PDFPage, x: number, y: number, width: number, height: number) {
-  drawRoundedRect(page, x, y, width, height, 16, COLORS.cardBackground, COLORS.blue, 1.5)
+  drawRoundedRect(
+    page,
+    x,
+    y,
+    width,
+    height,
+    CARD_LAYOUT.borderRadius,
+    COLORS.cardBackground,
+    COLORS.blue,
+    CARD_LAYOUT.borderWidth,
+  )
+}
+
+function drawCenteredText(page: PDFPage, value: string, centerX: number, y: number, style: TextStyle) {
+  const width = style.font.widthOfTextAtSize(value, style.size)
+  page.drawText(value, {
+    x: centerX - width / 2,
+    y,
+    size: style.size,
+    font: style.font,
+    color: style.color,
+  })
 }
 
 function drawImageCover(page: PDFPage, image: PDFImage, x: number, y: number, width: number, height: number) {
@@ -303,28 +380,38 @@ function drawFlyerPanel(
   page: PDFPage,
   bounds: PanelBounds,
   data: DoorhangerData,
-  assets: { headerImage: PDFImage; qrImage: PDFImage; boldFont: PDFFont; regularFont: PDFFont },
+  assets: FlyerAssets,
 ) {
   const { x, y, width, height } = bounds
-  const inset = 12
+  const inset = PANEL_LAYOUT.inset
   const contentX = x + inset
   const contentWidth = width - inset * 2
   const centerX = x + width / 2
 
-  drawRoundedRect(page, x, y, width, height, 20, COLORS.panelBackground, COLORS.blue, 2)
+  drawRoundedRect(
+    page,
+    x,
+    y,
+    width,
+    height,
+    PANEL_LAYOUT.borderRadius,
+    COLORS.panelBackground,
+    COLORS.blue,
+    PANEL_LAYOUT.borderWidth,
+  )
 
-  const imageHeight = 230
+  const imageHeight = PANEL_LAYOUT.imageHeight
   drawImageCover(page, assets.headerImage, x + 1, y + height - imageHeight - 1, width - 2, imageHeight)
 
-  let cursorY = y + height - imageHeight - 46
+  let cursorY = y + height - imageHeight - PANEL_LAYOUT.imageBottomGap
 
   const nameFit = fitWrappedText(
     `My name is ${data.scoutName}`,
     assets.boldFont,
     contentWidth - 20,
     2,
-    18,
-    12,
+    FONT_SIZES.namePreferred,
+    FONT_SIZES.nameMin,
   )
   drawCenteredLines(
     page,
@@ -340,7 +427,14 @@ function drawFlyerPanel(
 
   const introText =
     'I would like to speak to you about our Scout Spring fundraiser; We offer high quality professional mulch from Jemasco only available to landscapers and Scouts!'
-  const introFit = fitWrappedText(introText, assets.regularFont, contentWidth - 12, 5, 10.5, 8.5)
+  const introFit = fitWrappedText(
+    introText,
+    assets.regularFont,
+    contentWidth - 12,
+    5,
+    FONT_SIZES.introPreferred,
+    FONT_SIZES.introMin,
+  )
   drawCenteredLines(
     page,
     introFit.lines,
@@ -351,15 +445,15 @@ function drawFlyerPanel(
     introFit.fontSize * 1.35,
     COLORS.blueText,
   )
-  cursorY -= introFit.lines.length * introFit.fontSize * 1.35 + 18
+  cursorY -= introFit.lines.length * introFit.fontSize * 1.35 + PANEL_LAYOUT.contentGap
 
   const productFit = fitWrappedText(
     DEFAULT_PRODUCTS.join(', '),
     assets.boldFont,
     contentWidth - 20,
     2,
-    12,
-    9,
+    FONT_SIZES.productsPreferred,
+    FONT_SIZES.productsMin,
   )
   drawCenteredLines(
     page,
@@ -371,13 +465,20 @@ function drawFlyerPanel(
     productFit.fontSize * 1.2,
     COLORS.red,
   )
-  cursorY -= productFit.lines.length * productFit.fontSize * 1.25 + 18
+  cursorY -= productFit.lines.length * productFit.fontSize * 1.25 + PANEL_LAYOUT.contentGap
 
-  const orderCardHeight = 88
+  const orderCardHeight = CARD_LAYOUT.orderHeight
   drawCard(page, contentX, cursorY - orderCardHeight, contentWidth, orderCardHeight)
 
   const orderDeadlineLine = `Order Deadline: ${formatDoorhangerDate(data.saleEndDate)}`
-  const orderFit = fitWrappedText(orderDeadlineLine, assets.boldFont, contentWidth - 22, 1, 11, 9)
+  const orderFit = fitWrappedText(
+    orderDeadlineLine,
+    assets.boldFont,
+    contentWidth - 22,
+    1,
+    FONT_SIZES.orderPreferred,
+    FONT_SIZES.orderMin,
+  )
   drawCenteredLines(
     page,
     orderFit.lines,
@@ -399,26 +500,19 @@ function drawFlyerPanel(
 
   contactLines.forEach((line, index) => {
     const font = index === 0 ? assets.boldFont : assets.regularFont
-    const size = index === 0 ? 9.25 : 8.25
-    const widthAtSize = font.widthOfTextAtSize(line, size)
-    page.drawText(line, {
-      x: centerX - widthAtSize / 2,
-      y: cursorY - 34 - index * 12,
-      size,
+    drawCenteredText(page, line, centerX, cursorY - 34 - index * 12, {
       font,
+      size: index === 0 ? FONT_SIZES.contactHeading : FONT_SIZES.contactBody,
       color: COLORS.blueText,
     })
   })
-  cursorY -= orderCardHeight + 16
+  cursorY -= orderCardHeight + PANEL_LAYOUT.sectionGap
 
-  const deliveryCardHeight = 58
+  const deliveryCardHeight = CARD_LAYOUT.deliveryHeight
   drawCard(page, contentX, cursorY - deliveryCardHeight, contentWidth, deliveryCardHeight)
-  const deliveryLabelWidth = assets.boldFont.widthOfTextAtSize('Delivery On', 10)
-  page.drawText('Delivery On', {
-    x: centerX - deliveryLabelWidth / 2,
-    y: cursorY - 18,
-    size: 10,
+  drawCenteredText(page, 'Delivery On', centerX, cursorY - 18, {
     font: assets.boldFont,
+    size: FONT_SIZES.deliveryLabel,
     color: COLORS.blueText,
   })
   const deliveryFit = fitWrappedText(
@@ -426,8 +520,8 @@ function drawFlyerPanel(
     assets.boldFont,
     contentWidth - 20,
     1,
-    13,
-    10,
+    FONT_SIZES.deliveryPreferred,
+    FONT_SIZES.deliveryMin,
   )
   drawCenteredLines(
     page,
@@ -439,26 +533,23 @@ function drawFlyerPanel(
     deliveryFit.fontSize,
     COLORS.red,
   )
-  cursorY -= deliveryCardHeight + 16
+  cursorY -= deliveryCardHeight + PANEL_LAYOUT.sectionGap
 
-  const qrCardHeight = 128
+  const qrCardHeight = CARD_LAYOUT.qrHeight
   drawCard(page, contentX, cursorY - qrCardHeight, contentWidth, qrCardHeight)
-  const orderTodayWidth = assets.boldFont.widthOfTextAtSize('Order Today!', 12)
-  page.drawText('Order Today!', {
-    x: centerX - orderTodayWidth / 2,
-    y: cursorY - 18,
-    size: 12,
+  drawCenteredText(page, 'Order Today!', centerX, cursorY - 18, {
     font: assets.boldFont,
+    size: FONT_SIZES.orderToday,
     color: COLORS.red,
   })
 
-  const qrSize = 76
+  const qrSize = FONT_SIZES.qr
   drawRoundedRect(
     page,
-    centerX - qrSize / 2 - 6,
+    centerX - qrSize / 2 - PANEL_LAYOUT.qrInset,
     cursorY - 106,
-    qrSize + 12,
-    qrSize + 12,
+    qrSize + PANEL_LAYOUT.qrInset * 2,
+    qrSize + PANEL_LAYOUT.qrInset * 2,
     10,
     COLORS.white,
     COLORS.white,
@@ -470,11 +561,18 @@ function drawFlyerPanel(
     width: qrSize,
     height: qrSize,
   })
-  cursorY -= qrCardHeight + 22
+  cursorY -= qrCardHeight + PANEL_LAYOUT.closingGap
 
   const closingText =
     'All sales proceeds assist in sending Scouts to summer camp and fund needed equipment.'
-  const closingFit = fitWrappedText(closingText, assets.boldFont, contentWidth - 12, 3, 9.25, 8)
+  const closingFit = fitWrappedText(
+    closingText,
+    assets.boldFont,
+    contentWidth - 12,
+    3,
+    FONT_SIZES.closingPreferred,
+    FONT_SIZES.closingMin,
+  )
   drawCenteredLines(
     page,
     closingFit.lines,
@@ -485,19 +583,23 @@ function drawFlyerPanel(
     closingFit.fontSize * 1.25,
     COLORS.blueText,
   )
-  cursorY -= closingFit.lines.length * closingFit.fontSize * 1.25 + 18
+  cursorY -= closingFit.lines.length * closingFit.fontSize * 1.25 + PANEL_LAYOUT.contentGap
 
-  const thankYouWidth = assets.boldFont.widthOfTextAtSize('Thank you for supporting', 10)
-  page.drawText('Thank you for supporting', {
-    x: centerX - thankYouWidth / 2,
-    y: cursorY - 10,
-    size: 10,
+  drawCenteredText(page, 'Thank you for supporting', centerX, cursorY - 10, {
     font: assets.boldFont,
+    size: FONT_SIZES.thankYou,
     color: COLORS.blue,
   })
 
   const troopLabel = `Troop ${data.troopName?.replace(/^Troop\s*/i, '') || '771'}`
-  const troopFit = fitWrappedText(troopLabel, assets.boldFont, contentWidth - 8, 1, 20, 14)
+  const troopFit = fitWrappedText(
+    troopLabel,
+    assets.boldFont,
+    contentWidth - 8,
+    1,
+    FONT_SIZES.troopPreferred,
+    FONT_SIZES.troopMin,
+  )
   drawCenteredLines(
     page,
     troopFit.lines,
