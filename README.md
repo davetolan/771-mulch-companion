@@ -174,17 +174,7 @@ EXTERNAL_FUNDRAISING_BASE_URL=https://external-fundraising-system.com
 - [x] Payload CMS integration for admin workflows
 
 ### Phase 2: Enhanced Features
-- [ ] Email integration for customer outreach
-- [ ] Automated reminder and thank-you emails
-- [ ] Bulk operations for multiple scouts
-- [ ] Campaign performance metrics
-
-### Phase 3: Advanced Integration
-- [ ] API integration with external order systems
-- [ ] Real-time order status updates
-- [ ] Advanced reporting and analytics
-- [ ] Mobile-responsive flyer designs
-
+- [x] Email integration for customer outreach
 
 ## Mulch Delivery Routing – MVP Roadmap
 
@@ -202,7 +192,7 @@ Establish required data structures and baseline functionality.
   - **Order**
     - address fields (street, city, state, zip)
     - lat, lng (nullable initially)
-    - quantity (bags / yards)
+    - quantity (bags)
   - **Customer**
   - **Campaign**
 - Add new entities:
@@ -211,7 +201,7 @@ Establish required data structures and baseline functionality.
     - active status
   - **Vehicle**
     - name
-    - capacity (bags / yards)
+    - capacity (bags)
   - **Route**
     - campaign reference
     - driver reference
