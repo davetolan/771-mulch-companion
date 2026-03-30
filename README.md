@@ -185,6 +185,260 @@ EXTERNAL_FUNDRAISING_BASE_URL=https://external-fundraising-system.com
 - [ ] Advanced reporting and analytics
 - [ ] Mobile-responsive flyer designs
 
+
+## Mulch Delivery Routing – MVP Roadmap
+
+This roadmap defines a phased approach to building delivery routing and driver coordination features for the mulch fundraiser platform.
+
+### Phase 0 — Foundation
+
+#### Objectives
+
+Establish required data structures and baseline functionality.
+
+#### Deliverables
+
+- Extend core models:
+  - **Order**
+    - address fields (street, city, state, zip)
+    - lat, lng (nullable initially)
+    - quantity (bags / yards)
+  - **Customer**
+  - **Campaign**
+- Add new entities:
+  - **Driver**
+    - name, phone, email
+    - active status
+  - **Vehicle**
+    - name
+    - capacity (bags / yards)
+  - **Route**
+    - campaign reference
+    - driver reference
+    - status (draft, assigned, in_progress, complete)
+  - **RouteStop**
+    - route reference
+    - order reference
+    - stop order (integer)
+
+#### Notes
+
+- Use Prisma ORM for schema modeling and migrations.
+- Keep relationships simple and explicit.
+
+### Phase 1 — Geocoding
+
+#### Objectives
+
+Convert all delivery addresses into coordinates.
+
+#### Deliverables
+
+- Integrate geocoding via:
+  - Google Maps Platform, or
+  - Mapbox
+- On order creation/update:
+  - geocode address
+  - store lat / lng
+- Add retry mechanism for failed geocodes.
+- Cache results in database (avoid duplicate API calls).
+
+#### Notes
+
+- Geocoding is required for all mapping and clustering features.
+- Validate addresses early to reduce failures.
+
+### Phase 2 — Admin Map View
+
+#### Objectives
+
+Visualize all campaign orders geographically.
+
+#### Deliverables
+
+- Campaign map page:
+  - plot all orders as markers
+  - basic clustering (optional)
+- Order tooltip:
+  - name
+  - quantity
+  - address
+- Filter options:
+  - by campaign
+  - by assigned/unassigned
+
+#### Notes
+
+- Use simple map rendering (Google Maps or Mapbox JS SDK).
+- This becomes the foundation for route building.
+
+### Phase 3 — Manual Route Builder
+
+#### Objectives
+
+Allow admins to manually create and assign routes.
+
+#### Deliverables
+
+- Create/edit route UI.
+- Select orders and assign to route.
+- Assign:
+  - driver
+  - vehicle
+- Display:
+  - total stops
+  - total quantity vs capacity
+- Map view:
+  - highlight selected stops
+
+#### Notes
+
+- Prioritize usability over automation.
+- This enables real-world usage before optimization exists.
+
+### Phase 4 — Driver Experience
+
+#### Objectives
+
+Provide drivers with clear, usable route information.
+
+#### Deliverables
+
+- Driver access:
+  - login or magic link
+- Route view (mobile-first):
+  - ordered stop list
+  - customer name + address
+  - quantity per stop
+  - notes
+- Navigation links:
+  - open in Google Maps / Apple Maps
+- Load manifest:
+  - order numbers
+  - total load
+- Optional:
+  - printable route sheet (PDF)
+
+#### Notes
+
+- Do not build custom navigation.
+- Leverage existing mapping apps.
+
+### Phase 5 — Assisted Route Grouping
+
+#### Objectives
+
+Automate grouping of orders into manageable routes.
+
+#### Deliverables
+
+- "Suggest Routes" action:
+  - group orders by proximity
+  - enforce vehicle capacity constraints
+- Basic clustering strategies:
+  - ZIP code grouping (baseline)
+  - radius-based grouping
+  - lat/lng clustering (improved)
+- Output:
+  - draft routes
+  - unassigned orders if overflow
+
+#### Notes
+
+- This is not full optimization.
+- Focus on "good enough" grouping.
+
+### Phase 6 — Route Optimization (Optional Enhancement)
+
+#### Objectives
+
+Improve stop ordering within routes.
+
+#### Deliverables
+
+- Integrate routing optimization:
+  - Google Maps Directions API or equivalent
+- Reorder stops for:
+  - shortest path
+  - reduced drive time
+- Update RouteStop.order.
+
+#### Notes
+
+- Treat as enhancement, not requirement.
+- Adds cost and complexity.
+
+### Phase 7 — Notifications
+
+#### Objectives
+
+Distribute routes to drivers efficiently.
+
+#### Deliverables
+
+- Email route assignments.
+- Optional SMS notifications.
+- Include:
+  - route summary
+  - link to driver page
+
+#### Notes
+
+- Email is sufficient for MVP.
+- SMS can be added later.
+
+### Phase 8 — Operational Enhancements
+
+#### Objectives
+
+Support real-world delivery adjustments.
+
+#### Deliverables
+
+- Route editing after assignment.
+- Reassign orders between routes.
+- Mark stops as completed.
+- Add delivery notes (e.g., "backyard drop").
+
+#### Notes
+
+- Expect changes on delivery day.
+- Flexibility is required.
+
+### Technical Stack Notes
+
+- **Frontend:** Next.js
+- **CMS / Admin:** Payload CMS
+- **Database:** PostgreSQL via Prisma
+- **Hosting:** Vercel
+
+### MVP Definition
+
+The MVP is complete when:
+
+- Orders are geocoded.
+- Admin can:
+  - view orders on a map
+  - create routes manually
+  - assign drivers
+- Drivers can:
+  - view routes on mobile
+  - access stop addresses
+  - open navigation links
+- Basic grouping assistance exists.
+
+### Guiding Principle
+
+Build for operational usefulness first, not perfect optimization.
+
+A simple, reliable system that:
+
+- groups nearby deliveries
+- respects truck capacity
+- gives drivers clear instructions
+
+is significantly more valuable than a complex but fragile routing engine.
+
 ## Contributing
 
 This is an early-stage internal project. Please follow standard development practices:
