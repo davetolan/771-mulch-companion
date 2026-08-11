@@ -23,9 +23,27 @@ export const Customers: CollectionConfig = {
       required: true,
     },
     {
+      name: 'rallyUpDonorId',
+      type: 'text',
+      index: true,
+      admin: {
+        description: 'External RallyUp donor ID from the latest import',
+      },
+    },
+    {
       name: 'address',
       type: 'text',
       required: true,
+    },
+    {
+      name: 'address2',
+      type: 'text',
+      required: false,
+    },
+    {
+      name: 'address3',
+      type: 'text',
+      required: false,
     },
     {
       name: 'city',
@@ -36,6 +54,16 @@ export const Customers: CollectionConfig = {
       name: 'zip',
       type: 'text',
       required: true,
+    },
+    {
+      name: 'state',
+      type: 'text',
+      required: false,
+    },
+    {
+      name: 'country',
+      type: 'text',
+      required: false,
     },
     {
       name: 'phoneNumber',
@@ -51,9 +79,10 @@ export const Customers: CollectionConfig = {
       name: 'scout',
       type: 'relationship',
       relationTo: 'scouts',
-      required: true,
+      required: false,
       admin: {
-        description: 'The scout this customer is assigned to',
+        description:
+          'Legacy scout assignment. RallyUp imports assign scout credit on orders instead.',
       },
     },
   ],

@@ -151,21 +151,8 @@ export default async function DashboardPage() {
 
     const existingDraft = existingDraftResult.docs[0] || null
 
-    const scoutCustomers = await payload.find({
-      collection: 'customers',
-      depth: 0,
-      limit: 200,
-      where: {
-        scout: {
-          equals: scout.docs[0].id,
-        },
-      },
-    })
-
-    const customerIds = scoutCustomers.docs.map((customer) => customer.id)
-
     const previousCampaignOrders =
-      previousCampaign && customerIds.length > 0
+      previousCampaign
         ? await payload.find({
             collection: 'orders',
             depth: 1,
@@ -178,8 +165,8 @@ export default async function DashboardPage() {
                   },
                 },
                 {
-                  customer: {
-                    in: customerIds,
+                  scout: {
+                    equals: scout.docs[0].id,
                   },
                 },
               ],

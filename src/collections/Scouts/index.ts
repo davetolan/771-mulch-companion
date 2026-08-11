@@ -42,6 +42,15 @@ export const Scouts: CollectionConfig = {
       unique: true,
     },
     {
+      name: 'rallyUpParticipantId',
+      type: 'text',
+      unique: true,
+      index: true,
+      admin: {
+        description: 'External RallyUp participant ID used for CSV imports',
+      },
+    },
+    {
       name: 'flyerEmail',
       type: 'email',
       required: false,
@@ -77,6 +86,42 @@ export const Scouts: CollectionConfig = {
       admin: {
         description:
           'Full URL from external fundraising system (e.g., https://fundraising-system.com/scout/abc123)',
+      },
+    },
+    {
+      name: 'neighborhoodName',
+      type: 'text',
+      admin: {
+        description: 'Neighborhood from RallyUp participant registration',
+      },
+    },
+    {
+      name: 'registrationTitle',
+      type: 'text',
+      admin: {
+        description: 'RallyUp registration title, such as 771-B or 771-G',
+      },
+    },
+    {
+      name: 'registeredByName',
+      type: 'text',
+      admin: {
+        description: 'Name of the person who registered this RallyUp participant',
+      },
+    },
+    {
+      name: 'registeredByEmail',
+      type: 'email',
+      admin: {
+        description: 'Email of the person who registered this RallyUp participant',
+      },
+    },
+    {
+      name: 'amountRaised',
+      type: 'number',
+      admin: {
+        description: 'Amount raised from the latest RallyUp participant import',
+        step: 0.01,
       },
     },
     {

@@ -15,6 +15,10 @@ const BeforeDashboard: React.FC = () => {
       Here&apos;s what to do next:
       <ul className={`${baseClass}__instructions`}>
         <li>
+          <a href="/admin/rallyup-import">Import RallyUp CSV exports</a>
+          {' for scouts, customers, and orders.'}
+        </li>
+        <li>
           <SeedButton />
           {' with a few pages, posts, and projects to jump-start your new site, then '}
           <a href="/" target="_blank">

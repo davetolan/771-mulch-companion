@@ -239,6 +239,8 @@ export const seedDemoCustomerOrders = async ({
       data: {
         customer: customerId,
         campaign: campaign.id,
+        scout: scout.id,
+        type: 'product_order',
         items: order.items.map((item) => {
           const product = productsByName.get(item.productName)
 
@@ -408,6 +410,8 @@ export const seedHistoricalCampaignOrders = async ({
       data: {
         customer: customerId,
         campaign: historicalCampaign.id,
+        scout: scout.id,
+        type: 'product_order',
         items: order.items.map((item) => {
           const product = productsByName.get(item.productName)
 

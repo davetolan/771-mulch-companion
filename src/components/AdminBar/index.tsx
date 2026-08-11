@@ -3,7 +3,7 @@
 import type { PayloadAdminBarProps, PayloadMeUser } from '@payloadcms/admin-bar'
 
 import { cn } from '@/utilities/ui'
-import { useSelectedLayoutSegments } from 'next/navigation'
+import { usePathname, useSelectedLayoutSegments } from 'next/navigation'
 import { PayloadAdminBar } from '@payloadcms/admin-bar'
 import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
@@ -35,6 +35,7 @@ export const AdminBar: React.FC<{
   adminBarProps?: PayloadAdminBarProps
 }> = (props) => {
   const { adminBarProps } = props || {}
+  const pathname = usePathname()
   const segments = useSelectedLayoutSegments()
   const [show, setShow] = useState(false)
   const collection = (
@@ -45,6 +46,10 @@ export const AdminBar: React.FC<{
   const onAuthChange = React.useCallback((user: PayloadMeUser) => {
     setShow(Boolean(user?.id))
   }, [])
+
+  if (pathname === '/login' || pathname === '/dashboard') {
+    return null
+  }
 
   return (
     <div

@@ -77,6 +77,11 @@ export async function POST(request: Request) {
               },
             },
             {
+              scout: {
+                equals: scout.id,
+              },
+            },
+            {
               customer: {
                 in: customerIds,
               },

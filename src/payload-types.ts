@@ -212,15 +212,23 @@ export interface Campaign {
 export interface Customer {
   id: number;
   name: string;
+  /**
+   * External RallyUp donor ID from the latest import
+   */
+  rallyUpDonorId?: string | null;
   address: string;
+  address2?: string | null;
+  address3?: string | null;
   city: string;
   zip: string;
+  state?: string | null;
+  country?: string | null;
   phoneNumber: string;
   email: string;
   /**
-   * The scout this customer is assigned to
+   * Legacy scout assignment. RallyUp imports assign scout credit on orders instead.
    */
-  scout: number | Scout;
+  scout?: (number | null) | Scout;
   updatedAt: string;
   createdAt: string;
 }
@@ -238,6 +246,10 @@ export interface Scout {
   displayName: string;
   email: string;
   /**
+   * External RallyUp participant ID used for CSV imports
+   */
+  rallyUpParticipantId?: string | null;
+  /**
    * Optional email shown on printed flyers (default uses scout email)
    */
   flyerEmail?: string | null;
@@ -249,6 +261,26 @@ export interface Scout {
    * Full URL from external fundraising system (e.g., https://fundraising-system.com/scout/abc123)
    */
   externalFundraisingUrl: string;
+  /**
+   * Neighborhood from RallyUp participant registration
+   */
+  neighborhoodName?: string | null;
+  /**
+   * RallyUp registration title, such as 771-B or 771-G
+   */
+  registrationTitle?: string | null;
+  /**
+   * Name of the person who registered this RallyUp participant
+   */
+  registeredByName?: string | null;
+  /**
+   * Email of the person who registered this RallyUp participant
+   */
+  registeredByEmail?: string | null;
+  /**
+   * Amount raised from the latest RallyUp participant import
+   */
+  amountRaised?: number | null;
   /**
    * Unique identifier for URLs (auto-generated from display name)
    */
@@ -323,13 +355,61 @@ export interface EmailTemplate {
  */
 export interface Order {
   id: number;
+  type: 'product_order' | 'donation';
+  /**
+   * External RallyUp PaymentID
+   */
+  rallyUpPaymentId?: string | null;
+  /**
+   * External RallyUp ParticipantID credited for this order
+   */
+  rallyUpParticipantId?: string | null;
   customer: number | Customer;
+  /**
+   * Scout credited for this order. RallyUp imports always set this value.
+   */
+  scout?: (number | null) | Scout;
   campaign: number | Campaign;
-  items: {
-    product: number | Product;
-    count: number;
-    id?: string | null;
-  }[];
+  items?:
+    | {
+        product: number | Product;
+        /**
+         * Original RallyUp item name, such as Potting Soil or Compost Manure
+         */
+        rallyUpProductName?: string | null;
+        count: number;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Original RallyUp payment status, such as Paid or Voided
+   */
+  rallyUpStatus?: string | null;
+  /**
+   * RallyUp payment type, such as Card or Check
+   */
+  paymentType?: string | null;
+  checkNumber?: string | null;
+  processingType?: string | null;
+  source?: string | null;
+  fundCode?: string | null;
+  contributionDate?: string | null;
+  paidDate?: string | null;
+  lastUpdatedDate?: string | null;
+  amount?: number | null;
+  storeAmount?: number | null;
+  totalAmount?: number | null;
+  flatAmount?: number | null;
+  itemAmount?: number | null;
+  totalRallyUpFee?: number | null;
+  processingFee?: number | null;
+  feesPaidByDonor?: number | null;
+  afterFees?: number | null;
+  deliveryInstructions?: string | null;
+  delivered?: boolean | null;
+  anonymousDonation?: boolean | null;
+  comment?: string | null;
+  cancellationReason?: string | null;
   /**
    * Calculated total quantity across all products in this order
    */
@@ -1317,9 +1397,14 @@ export interface CampaignsSelect<T extends boolean = true> {
  */
 export interface CustomersSelect<T extends boolean = true> {
   name?: T;
+  rallyUpDonorId?: T;
   address?: T;
+  address2?: T;
+  address3?: T;
   city?: T;
   zip?: T;
+  state?: T;
+  country?: T;
   phoneNumber?: T;
   email?: T;
   scout?: T;
@@ -1344,15 +1429,43 @@ export interface EmailTemplatesSelect<T extends boolean = true> {
  * via the `definition` "orders_select".
  */
 export interface OrdersSelect<T extends boolean = true> {
+  type?: T;
+  rallyUpPaymentId?: T;
+  rallyUpParticipantId?: T;
   customer?: T;
+  scout?: T;
   campaign?: T;
   items?:
     | T
     | {
         product?: T;
+        rallyUpProductName?: T;
         count?: T;
         id?: T;
       };
+  rallyUpStatus?: T;
+  paymentType?: T;
+  checkNumber?: T;
+  processingType?: T;
+  source?: T;
+  fundCode?: T;
+  contributionDate?: T;
+  paidDate?: T;
+  lastUpdatedDate?: T;
+  amount?: T;
+  storeAmount?: T;
+  totalAmount?: T;
+  flatAmount?: T;
+  itemAmount?: T;
+  totalRallyUpFee?: T;
+  processingFee?: T;
+  feesPaidByDonor?: T;
+  afterFees?: T;
+  deliveryInstructions?: T;
+  delivered?: T;
+  anonymousDonation?: T;
+  comment?: T;
+  cancellationReason?: T;
   totalProductCount?: T;
   updatedAt?: T;
   createdAt?: T;
@@ -1410,9 +1523,15 @@ export interface ScoutsSelect<T extends boolean = true> {
   lastName?: T;
   displayName?: T;
   email?: T;
+  rallyUpParticipantId?: T;
   flyerEmail?: T;
   flyerPhone?: T;
   externalFundraisingUrl?: T;
+  neighborhoodName?: T;
+  registrationTitle?: T;
+  registeredByName?: T;
+  registeredByEmail?: T;
+  amountRaised?: T;
   slug?: T;
   active?: T;
   user?: T;
