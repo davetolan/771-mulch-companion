@@ -9,7 +9,6 @@ export async function POST(request: Request) {
 
   try {
     const { scout, user } = await getScoutSession({
-      headers: new Headers(request.headers),
       payload,
     })
 

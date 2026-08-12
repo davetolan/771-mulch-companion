@@ -122,6 +122,13 @@ DATABASE_URL=postgresql://username:password@localhost:5432/scout_fundraiser
 # Payload CMS
 PAYLOAD_SECRET=your-payload-secret-key-here
 
+# Clerk shared auth
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_live_or_test_key
+CLERK_SECRET_KEY=sk_live_or_test_key
+NEXT_PUBLIC_CLERK_SIGN_IN_URL=https://auth.troop771.com/sign-in
+NEXT_PUBLIC_CLERK_SIGN_UP_URL=https://auth.troop771.com/sign-up
+CLERK_WEBHOOK_SIGNING_SECRET=whsec_from_clerk_dashboard
+
 # Next.js
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 
@@ -133,8 +140,19 @@ EXTERNAL_FUNDRAISING_BASE_URL=https://external-fundraising-system.com
 
 - `DATABASE_URL`: PostgreSQL connection string
 - `PAYLOAD_SECRET`: Secret key for Payload CMS encryption and authentication
+- `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`: Clerk publishable key. Use the same Clerk application as ProgrammingMB.
+- `CLERK_SECRET_KEY`: Clerk secret key from the shared Clerk application.
+- `NEXT_PUBLIC_CLERK_SIGN_IN_URL`: Shared sign-in URL, `https://auth.troop771.com/sign-in`.
+- `NEXT_PUBLIC_CLERK_SIGN_UP_URL`: Shared sign-up URL, `https://auth.troop771.com/sign-up`.
+- `CLERK_WEBHOOK_SIGNING_SECRET`: Svix signing secret for the Clerk webhook endpoint.
 - `NEXT_PUBLIC_APP_URL`: Base URL for the application (used for generating links)
 - `EXTERNAL_FUNDRAISING_BASE_URL`: Base URL of the external fundraising system (for QR code generation)
+
+### Clerk Dashboard Setup
+
+Use the same Clerk application as ProgrammingMB. In production, configure the primary auth domain as `auth.troop771.com`, add this app's production subdomain such as `mulch.troop771.com` as an allowed application subdomain, and include the production app URL in authorized redirects. Configure a webhook endpoint at this app's production URL plus `/api/webhooks/clerk` for `user.created` and `user.updated`.
+
+Clerk users are linked to local Payload users by `users.clerkUserId`. App-specific roles, scout records, customer data, and permissions remain local to this app. Do not create passwords or reset-token state for users that enter through Clerk.
 
 ## Project Structure
 
@@ -441,4 +459,3 @@ This is an early-stage internal project. Please follow standard development prac
 ## License
 
 Internal project - no public license specified.
-

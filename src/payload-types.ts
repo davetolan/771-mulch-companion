@@ -80,6 +80,7 @@ export interface Config {
     media: Media;
     categories: Category;
     users: User;
+    'clerk-webhook-events': ClerkWebhookEvent;
     redirects: Redirect;
     forms: Form;
     'form-submissions': FormSubmission;
@@ -110,6 +111,7 @@ export interface Config {
     media: MediaSelect<false> | MediaSelect<true>;
     categories: CategoriesSelect<false> | CategoriesSelect<true>;
     users: UsersSelect<false> | UsersSelect<true>;
+    'clerk-webhook-events': ClerkWebhookEventsSelect<false> | ClerkWebhookEventsSelect<true>;
     redirects: RedirectsSelect<false> | RedirectsSelect<true>;
     forms: FormsSelect<false> | FormsSelect<true>;
     'form-submissions': FormSubmissionsSelect<false> | FormSubmissionsSelect<true>;
@@ -303,6 +305,10 @@ export interface Scout {
 export interface User {
   id: number;
   name?: string | null;
+  /**
+   * Clerk user ID for shared auth through auth.troop771.com
+   */
+  clerkUserId?: string | null;
   roles: ('admin' | 'scout')[];
   updatedAt: string;
   createdAt: string;
@@ -1073,6 +1079,20 @@ export interface Form {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "clerk-webhook-events".
+ */
+export interface ClerkWebhookEvent {
+  id: number;
+  svixId: string;
+  eventId: string;
+  eventType: 'user.created' | 'user.updated';
+  status: 'received' | 'processed' | 'failed';
+  processedAt?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "redirects".
  */
 export interface Redirect {
@@ -1312,6 +1332,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'users';
         value: number | User;
+      } | null)
+    | ({
+        relationTo: 'clerk-webhook-events';
+        value: number | ClerkWebhookEvent;
       } | null)
     | ({
         relationTo: 'redirects';
@@ -1824,6 +1848,7 @@ export interface CategoriesSelect<T extends boolean = true> {
  */
 export interface UsersSelect<T extends boolean = true> {
   name?: T;
+  clerkUserId?: T;
   roles?: T;
   updatedAt?: T;
   createdAt?: T;
@@ -1841,6 +1866,19 @@ export interface UsersSelect<T extends boolean = true> {
         createdAt?: T;
         expiresAt?: T;
       };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "clerk-webhook-events_select".
+ */
+export interface ClerkWebhookEventsSelect<T extends boolean = true> {
+  svixId?: T;
+  eventId?: T;
+  eventType?: T;
+  status?: T;
+  processedAt?: T;
+  updatedAt?: T;
+  createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

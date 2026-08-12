@@ -30,7 +30,7 @@ export const Users: CollectionConfig = {
     ],
   },
   admin: {
-    defaultColumns: ['name', 'email', 'roles'],
+    defaultColumns: ['name', 'email', 'roles', 'clerkUserId'],
     useAsTitle: 'name',
   },
   auth: true,
@@ -38,6 +38,16 @@ export const Users: CollectionConfig = {
     {
       name: 'name',
       type: 'text',
+    },
+    {
+      name: 'clerkUserId',
+      type: 'text',
+      unique: true,
+      index: true,
+      admin: {
+        description: 'Clerk user ID for shared auth through auth.troop771.com',
+        readOnly: true,
+      },
     },
     {
       name: 'roles',

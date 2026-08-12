@@ -6,6 +6,7 @@ import { fileURLToPath } from 'url'
 
 import { Campaigns } from './collections/Campaigns'
 import { Categories } from './collections/Categories'
+import { ClerkWebhookEvents } from './collections/ClerkWebhookEvents'
 import { Customers } from './collections/Customers'
 import { EmailTemplates } from './collections/EmailTemplates'
 import { Media } from './collections/Media'
@@ -90,6 +91,7 @@ export default buildConfig({
     Media,
     Categories,
     Users,
+    ClerkWebhookEvents,
   ],
   cors: [getServerSideURL()].filter(Boolean),
   globals: [Header, Footer],
