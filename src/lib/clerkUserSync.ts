@@ -122,6 +122,10 @@ export async function syncClerkUser(
         clerkUserId: normalizedClerkUserId,
         email: normalizedEmail,
         name: normalizedName,
+        // Clerk is the only sign-in path for these users; beforeLogin blocks
+        // non-admin password login, so this value is never used to sign in.
+        // It only satisfies the users collection's required password field.
+        password: `${crypto.randomUUID()}${crypto.randomUUID()}`,
         roles: ['scout'],
       },
     })
