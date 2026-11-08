@@ -45,15 +45,38 @@ export async function POST(request: Request) {
     return NextResponse.json({ message: 'An admin user already exists.' }, { status: 403 })
   }
 
-  const user = await payload.create({
+  const existingByEmail = await payload.find({
     collection: 'users',
-    data: {
-      email,
-      name,
-      password,
-      roles: ['admin'],
+    depth: 0,
+    limit: 1,
+    where: {
+      email: {
+        equals: email,
+      },
     },
   })
 
-  return NextResponse.json({ email: user.email, id: user.id })
+  const existingUser = existingByEmail.docs[0]
+
+  const user = existingUser
+    ? await payload.update({
+        collection: 'users',
+        id: existingUser.id,
+        data: {
+          name,
+          password,
+          roles: Array.from(new Set([...(existingUser.roles || []), 'admin'])),
+        },
+      })
+    : await payload.create({
+        collection: 'users',
+        data: {
+          email,
+          name,
+          password,
+          roles: ['admin'],
+        },
+      })
+
+  return NextResponse.json({ email: user.email, id: user.id, upgraded: Boolean(existingUser) })
 }
