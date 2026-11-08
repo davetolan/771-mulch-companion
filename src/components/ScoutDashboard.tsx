@@ -150,7 +150,7 @@ export function ScoutDashboard({
 
   const handleLogout = () => {
     document.cookie = 'payload-token=; path=/; max-age=0; samesite=lax'
-    window.location.href = '/login'
+    window.location.href = '/api/dev/logout'
   }
 
   const handleSaveFlyerContact = async () => {

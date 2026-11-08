@@ -1,5 +1,5 @@
 import { auth, currentUser } from '@clerk/nextjs/server'
-import { headers } from 'next/headers'
+import { cookies, headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import type { Payload } from 'payload'
 
@@ -7,6 +7,7 @@ import type { Scout, User } from '@/payload-types'
 import { buildSignInRedirectUrl } from './authUrls'
 import { getIdentityFromClerkUser } from './clerkUser'
 import { syncClerkUser } from './clerkUserSync'
+import { DEV_AUTH_COOKIE_NAME, isDevAuthEnabled, resolveDevAuthContext } from './devAuth'
 
 export type ScoutAuthContext = {
   clerkUserId: string
@@ -19,7 +20,17 @@ function hasScoutRole(user: User | null | undefined) {
 }
 
 async function resolveUser(payload: Payload) {
-  const { userId } = await auth()
+  let userId: string | null = null
+
+  try {
+    const authState = await auth()
+    userId = authState.userId
+  } catch (error) {
+    if (!isDevAuthEnabled()) {
+      throw error
+    }
+  }
+
   if (!userId) return null
 
   const clerkUser = await currentUser()
@@ -34,35 +45,55 @@ async function resolveUser(payload: Payload) {
   }
 }
 
-export async function getScoutAuthContext(payload: Payload): Promise<ScoutAuthContext | null> {
-  const resolved = await resolveUser(payload)
-
-  if (!resolved || !hasScoutRole(resolved.user)) {
+async function getDevScoutAuthContext(payload: Payload): Promise<ScoutAuthContext | null> {
+  if (!isDevAuthEnabled()) {
     return null
   }
 
-  const scoutResult = await payload.find({
-    collection: 'scouts',
-    depth: 0,
-    limit: 1,
-    where: {
-      user: {
-        equals: resolved.user.id,
-      },
-    },
-  })
+  const cookieStore = await cookies()
+  const context = await resolveDevAuthContext(
+    payload,
+    cookieStore.get(DEV_AUTH_COOKIE_NAME)?.value,
+  )
 
-  const scout = scoutResult.docs[0] as Scout | undefined
-
-  if (!scout) {
+  if (!context) {
     return null
   }
 
   return {
-    clerkUserId: resolved.clerkUserId,
-    scout,
-    user: resolved.user,
+    clerkUserId: context.user.clerkUserId || `dev:${context.user.id}`,
+    scout: context.scout,
+    user: context.user,
   }
+}
+
+export async function getScoutAuthContext(payload: Payload): Promise<ScoutAuthContext | null> {
+  const resolved = await resolveUser(payload)
+
+  if (resolved && hasScoutRole(resolved.user)) {
+    const scoutResult = await payload.find({
+      collection: 'scouts',
+      depth: 0,
+      limit: 1,
+      where: {
+        user: {
+          equals: resolved.user.id,
+        },
+      },
+    })
+
+    const scout = scoutResult.docs[0] as Scout | undefined
+
+    if (scout) {
+      return {
+        clerkUserId: resolved.clerkUserId,
+        scout,
+        user: resolved.user,
+      }
+    }
+  }
+
+  return getDevScoutAuthContext(payload)
 }
 
 export async function requireScoutAuthContext(payload: Payload) {
@@ -74,6 +105,14 @@ export async function requireScoutAuthContext(payload: Payload) {
     const proto = requestHeaders.get('x-forwarded-proto') ?? 'https'
     const pathname = requestHeaders.get('x-pathname') ?? requestHeaders.get('x-invoke-path') ?? '/'
     const returnBackUrl = host ? `${proto}://${host}${pathname}` : null
+
+    if (isDevAuthEnabled()) {
+      const devLoginUrl = new URL('/dev/login', returnBackUrl || 'http://localhost:3000')
+      if (returnBackUrl) {
+        devLoginUrl.searchParams.set('returnBackUrl', returnBackUrl)
+      }
+      redirect(devLoginUrl.toString())
+    }
 
     redirect(buildSignInRedirectUrl(returnBackUrl))
   }

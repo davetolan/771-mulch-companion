@@ -129,6 +129,10 @@ NEXT_PUBLIC_CLERK_SIGN_IN_URL=https://auth.troop771.com/sign-in
 NEXT_PUBLIC_CLERK_SIGN_UP_URL=https://auth.troop771.com/sign-up
 CLERK_WEBHOOK_SIGNING_SECRET=whsec_from_clerk_dashboard
 
+# Local development only
+MULCH_DEV_AUTH_ENABLED=false
+MULCH_DEV_AUTH_SECRET=optional-dev-cookie-secret
+
 # Next.js
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 
@@ -145,6 +149,8 @@ EXTERNAL_FUNDRAISING_BASE_URL=https://external-fundraising-system.com
 - `NEXT_PUBLIC_CLERK_SIGN_IN_URL`: Shared sign-in URL, `https://auth.troop771.com/sign-in`.
 - `NEXT_PUBLIC_CLERK_SIGN_UP_URL`: Shared sign-up URL, `https://auth.troop771.com/sign-up`.
 - `CLERK_WEBHOOK_SIGNING_SECRET`: Svix signing secret for the Clerk webhook endpoint.
+- `MULCH_DEV_AUTH_ENABLED`: Set to `true` only in local development to enable `/dev/login` without Clerk.
+- `MULCH_DEV_AUTH_SECRET`: Optional signing secret for the dev auth cookie. If omitted in development, `PAYLOAD_SECRET` is used.
 - `NEXT_PUBLIC_APP_URL`: Base URL for the application (used for generating links)
 - `EXTERNAL_FUNDRAISING_BASE_URL`: Base URL of the external fundraising system (for QR code generation)
 
@@ -153,6 +159,8 @@ EXTERNAL_FUNDRAISING_BASE_URL=https://external-fundraising-system.com
 Use the same Clerk application as ProgrammingMB. In production, configure the primary auth domain as `auth.troop771.com`, add this app's production subdomain such as `mulch.troop771.com` as an allowed application subdomain, and include the production app URL in authorized redirects. Configure a webhook endpoint at this app's production URL plus `/api/webhooks/clerk` for `user.created` and `user.updated`.
 
 Clerk users are linked to local Payload users by `users.clerkUserId`. App-specific roles, scout records, customer data, and permissions remain local to this app. Do not create passwords or reset-token state for users that enter through Clerk.
+
+For local development without Clerk, set `MULCH_DEV_AUTH_ENABLED=true` and visit `/dev/login`. The dev login page only appears outside production and only signs in existing local Payload users that have the `scout` role and a linked scout record.
 
 ## Project Structure
 

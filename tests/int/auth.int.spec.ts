@@ -5,6 +5,12 @@ import { isClerkProtectedPath } from '@/lib/authGuards'
 import { syncClerkUser } from '@/lib/clerkUserSync'
 import { processClerkWebhookEvent } from '@/lib/clerkWebhookHandler'
 import type { ClerkUserEvent } from '@/lib/clerkWebhook'
+import {
+  createDevAuthCookieValue,
+  isDevAuthEnabled,
+  resolveDevAuthContext,
+  verifyDevAuthCookieValue,
+} from '@/lib/devAuth'
 
 const ORIGINAL_ENV = process.env
 
@@ -62,6 +68,32 @@ function makePayloadWithUsers(initialUsers: any[]) {
   return { calls, payload: payload as any, users }
 }
 
+function makePayloadWithDevAuthRecords({
+  scouts,
+  users,
+}: {
+  scouts: any[]
+  users: any[]
+}) {
+  const payload = {
+    find: vi.fn(async (args: any) => {
+      if (args.collection === 'users') {
+        const match = users.find((user) => String(user.id) === String(args.where?.id?.equals))
+        return { docs: match ? [match] : [] }
+      }
+
+      if (args.collection === 'scouts') {
+        const match = scouts.find((scout) => String(scout.user) === String(args.where?.user?.equals))
+        return { docs: match ? [match] : [] }
+      }
+
+      return { docs: [] }
+    }),
+  }
+
+  return payload as any
+}
+
 describe('Clerk auth URL helpers', () => {
   beforeEach(() => {
     vi.resetModules()
@@ -103,6 +135,61 @@ describe('Clerk protected route matching', () => {
     expect(isClerkProtectedPath('/login')).toBe(false)
     expect(isClerkProtectedPath('/admin')).toBe(false)
     expect(isClerkProtectedPath('/api/scout/login')).toBe(false)
+  })
+})
+
+describe('dev auth', () => {
+  beforeEach(() => {
+    vi.useRealTimers()
+    vi.unstubAllEnvs()
+    vi.stubEnv('NODE_ENV', 'test')
+    vi.stubEnv('MULCH_DEV_AUTH_ENABLED', 'true')
+    vi.stubEnv('MULCH_DEV_AUTH_SECRET', 'test-dev-secret')
+  })
+
+  it('is disabled in production even when the env flag is set', () => {
+    vi.stubEnv('NODE_ENV', 'production')
+    expect(isDevAuthEnabled()).toBe(false)
+  })
+
+  it('verifies valid cookies and rejects tampered cookies', async () => {
+    const cookieValue = await createDevAuthCookieValue(42)
+
+    await expect(verifyDevAuthCookieValue(cookieValue)).resolves.toMatchObject({ userId: 42 })
+    await expect(verifyDevAuthCookieValue(`${cookieValue}tampered`)).resolves.toBeNull()
+  })
+
+  it('rejects expired cookies', async () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-01-01T00:00:00Z'))
+    const cookieValue = await createDevAuthCookieValue(42)
+
+    vi.setSystemTime(new Date('2026-01-01T13:00:00Z'))
+
+    await expect(verifyDevAuthCookieValue(cookieValue)).resolves.toBeNull()
+  })
+
+  it('resolves a local scout-linked user from a valid dev cookie', async () => {
+    const cookieValue = await createDevAuthCookieValue(7)
+    const payload = makePayloadWithDevAuthRecords({
+      scouts: [{ id: 22, displayName: 'Local Scout', user: 7 }],
+      users: [{ id: 7, email: 'scout@example.com', name: 'Local Scout', roles: ['scout'] }],
+    })
+
+    await expect(resolveDevAuthContext(payload, cookieValue)).resolves.toMatchObject({
+      scout: { id: 22 },
+      user: { id: 7 },
+    })
+  })
+
+  it('rejects valid dev cookies for users without a linked scout record', async () => {
+    const cookieValue = await createDevAuthCookieValue(7)
+    const payload = makePayloadWithDevAuthRecords({
+      scouts: [],
+      users: [{ id: 7, email: 'scout@example.com', name: 'Local Scout', roles: ['scout'] }],
+    })
+
+    await expect(resolveDevAuthContext(payload, cookieValue)).resolves.toBeNull()
   })
 })
 
