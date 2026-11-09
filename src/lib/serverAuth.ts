@@ -82,7 +82,43 @@ export async function getScoutAuthContext(payload: Payload): Promise<ScoutAuthCo
       },
     })
 
-    const scout = scoutResult.docs[0] as Scout | undefined
+    let scout = scoutResult.docs[0] as Scout | undefined
+
+    if (!scout && resolved.user.email) {
+      // First login for a scout whose record came from the RallyUp import:
+      // link it by email instead of requiring an admin to do it by hand.
+      const unlinkedByEmail = await payload.find({
+        collection: 'scouts',
+        depth: 0,
+        limit: 1,
+        where: {
+          and: [
+            {
+              email: {
+                equals: resolved.user.email,
+              },
+            },
+            {
+              user: {
+                exists: false,
+              },
+            },
+          ],
+        },
+      })
+
+      const unlinkedScout = unlinkedByEmail.docs[0] as Scout | undefined
+
+      if (unlinkedScout) {
+        scout = (await payload.update({
+          collection: 'scouts',
+          id: unlinkedScout.id,
+          data: {
+            user: resolved.user.id,
+          },
+        })) as Scout
+      }
+    }
 
     if (scout) {
       return {

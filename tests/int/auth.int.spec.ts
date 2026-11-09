@@ -233,7 +233,7 @@ describe('Clerk local user sync', () => {
     })
   })
 
-  it('creates a scout local user without password data', async () => {
+  it('creates a scout local user with an unusable random password', async () => {
     const { calls, payload } = makePayloadWithUsers([])
 
     await syncClerkUser(payload, {
@@ -242,13 +242,19 @@ describe('Clerk local user sync', () => {
       name: 'New Scout',
     })
 
-    expect(calls.create[0].data).toEqual({
+    const { password, ...rest } = calls.create[0].data
+
+    expect(rest).toEqual({
       clerkUserId: 'user_new',
       email: 'new@example.com',
       name: 'New Scout',
       roles: ['scout'],
     })
-    expect(calls.create[0].data).not.toHaveProperty('password')
+    // Required by the users collection's password field, but never used to
+    // sign in: scouts authenticate through Clerk, and beforeLogin blocks
+    // non-admin password login.
+    expect(typeof password).toBe('string')
+    expect(password.length).toBeGreaterThanOrEqual(32)
   })
 })
 
