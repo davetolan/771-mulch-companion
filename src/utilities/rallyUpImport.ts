@@ -28,6 +28,18 @@ type ImportIssue = {
 
 const PARTICIPANT_ID_HEADER = '"ID"'
 
+const GENERAL_SCOUT_RALLY_UP_ID = 'GENERAL'
+
+const GENERAL_SCOUT_DEFAULTS = {
+  active: false,
+  displayName: 'General / Unattributed Donations',
+  email: 'general-donations@troop771.com',
+  externalFundraisingUrl: 'https://troop771.com',
+  firstName: 'General',
+  lastName: 'Donations',
+  rallyUpParticipantId: GENERAL_SCOUT_RALLY_UP_ID,
+}
+
 const REQUIRED_PARTICIPANT_HEADERS = [
   PARTICIPANT_ID_HEADER,
   'Full Name',
@@ -235,6 +247,32 @@ const getCustomerName = (donation: CSVRow) => {
   return deliveryName || donation['Donor Name'] || `${donation['First Name']} ${donation['Last Name']}`.trim()
 }
 
+const ensureGeneralScout = async (payload: Payload, req: PayloadRequest) => {
+  const existing = await payload.find({
+    collection: 'scouts',
+    depth: 0,
+    limit: 1,
+    overrideAccess: false,
+    req,
+    where: {
+      rallyUpParticipantId: {
+        equals: GENERAL_SCOUT_RALLY_UP_ID,
+      },
+    },
+  })
+
+  if (existing.docs[0]) return existing.docs[0].id
+
+  const scout = await payload.create({
+    collection: 'scouts',
+    data: GENERAL_SCOUT_DEFAULTS,
+    overrideAccess: false,
+    req,
+  })
+
+  return scout.id
+}
+
 export const runRallyUpImport = async ({
   action,
   campaignId,
@@ -268,6 +306,7 @@ export const runRallyUpImport = async ({
   const productNames = new Set<string>()
   const uniqueOrderKeys = new Set<string>()
   const duplicateOrderKeys = new Set<string>()
+  const generalAttributedRows = new Set<number>()
 
   donations.rows.forEach((donation, index) => {
     const paymentId = donation.PaymentID
@@ -276,10 +315,10 @@ export const runRallyUpImport = async ({
 
     statuses.set(donation.Status, (statuses.get(donation.Status) || 0) + 1)
 
-    if (!paymentId || !participantId) {
+    if (!paymentId) {
       skippedDonationRows.add(index)
       issues.push({
-        message: 'Donation row is missing PaymentID or ParticipantID',
+        message: 'Donation row is missing PaymentID',
         paymentId,
         participantId,
         row: index + 2,
@@ -292,12 +331,22 @@ export const runRallyUpImport = async ({
     }
     uniqueOrderKeys.add(key)
 
-    if (!participantsById.has(participantId)) {
-      skippedDonationRows.add(index)
+    if (participantId) {
+      if (!participantsById.has(participantId)) {
+        skippedDonationRows.add(index)
+        issues.push({
+          message: 'Donation ParticipantID does not exist in participants.csv',
+          paymentId,
+          participantId,
+          row: index + 2,
+        })
+      }
+    } else {
+      generalAttributedRows.add(index)
       issues.push({
-        message: 'Donation ParticipantID does not exist in participants.csv',
+        message:
+          'Donation row has no ParticipantID; will be attributed to the general/house scout',
         paymentId,
-        participantId,
         row: index + 2,
       })
     }
@@ -352,6 +401,7 @@ export const runRallyUpImport = async ({
       .length,
     donations: donations.rows.length,
     duplicateOrderKeys: duplicateOrderKeys.size,
+    generalAttributedRows: generalAttributedRows.size,
     issues,
     participants: participants.rows.length,
     productOrderRows: Array.from(donationItemsByKey.values()).filter((items) => items.length > 0)
@@ -387,6 +437,8 @@ export const runRallyUpImport = async ({
   }
 
   const scoutsByParticipantId = new Map<string, number>()
+  const generalScoutId =
+    generalAttributedRows.size > 0 ? await ensureGeneralScout(payload, req) : undefined
 
   for (const participant of participants.rows) {
     const participantId = participant[PARTICIPANT_ID_HEADER]
@@ -470,13 +522,17 @@ export const runRallyUpImport = async ({
     const email = normalizeEmail(donation.Email)
     const participantId = donation.ParticipantID
     const paymentId = donation.PaymentID
-    const scoutId = scoutsByParticipantId.get(participantId)
+    const scoutId = participantId ? scoutsByParticipantId.get(participantId) : generalScoutId
 
     if (!email) {
       throw new Error(`Donation ${paymentId} is missing customer email`)
     }
     if (!scoutId) {
-      throw new Error(`Donation ${paymentId} references unknown participant ${participantId}`)
+      throw new Error(
+        participantId
+          ? `Donation ${paymentId} references unknown participant ${participantId}`
+          : `Donation ${paymentId} has no ParticipantID and the general scout could not be resolved`,
+      )
     }
 
     const existingCustomer =
